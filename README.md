@@ -85,4 +85,4 @@ See the instructions in the `vercel-deploy-steps` file at the root of the projec
 =======
 # happyonlineshop
 Project with Google Antigravity IDE help
->>>>>>> origin/main
+
