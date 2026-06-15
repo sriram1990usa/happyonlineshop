@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load static %}{% load currency_filters %}
+{% block title %}Checkout - Payment & Review — PremiumShop AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <div class="max-w-5xl mx-auto space-y-8">
+    
+    <!-- Checkout steps progress bar -->
+    <div class="flex items-center justify-between max-w-3xl mx-auto">
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-sm">1</div>
+        <span class="text-xs font-semibold text-brand-600 mt-2">Address</span>
+      </div>
+      <div class="h-1 bg-brand-600 flex-1"></div>
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-sm">2</div>
+        <span class="text-xs font-semibold text-brand-600 mt-2">Payment</span>
+      </div>
+      <div class="h-1 bg-gray-200 flex-1"></div>
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm">3</div>
+        <span class="text-xs font-semibold text-gray-400 mt-2">Confirmation</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- ======= PAYMENT OPTIONS ======= -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Selected Address Summary -->
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+          <h2 class="font-display font-bold text-base text-gray-800 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-location-dot text-brand-600"></i> Shipping Address
+          </h2>
+          <div class="text-sm text-gray-600 space-y-0.5">
+            <p class="font-bold text-gray-800">{{ address.recipient_name }}</p>
+            <p>{{ address.street_address }}</p>
+            <p>{{ address.city }}, {{ address.state }} - {{ address.postal_code }}</p>
+            <p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-phone"></i> {{ address.phone_number }}</p>
+          </div>
+        </div>
+
+        <!-- Payment Method Selection -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
+          <h2 class="font-display font-black text-xl text-gray-900 border-b border-gray-100 pb-3">Choose Payment Method</h2>
+          
+          <form method="POST" id="payment-form" class="space-y-4">
+            {% csrf_token %}
+            
+            <!-- Cash on Delivery (COD) -->
+            <label class="relative block rounded-xl border border-gray-200 hover:border-brand-500 p-4 cursor-pointer transition-all">
+              <input type="radio" name="payment_method" value="COD" checked onclick="togglePaymentMock(false)"
+                class="absolute top-4 right-4 text-brand-600 focus:ring-brand-500"/>
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center"><i class="fa-solid fa-hand-holding-dollar text-gray-600 text-lg"></i></div>
+                <div>
+                  <span class="font-bold text-gray-800 text-sm">Cash on Delivery (COD)</span>
+                  <p class="text-xs text-gray-400 mt-0.5">Pay in cash or UPI when order is delivered.</p>
+                </div>
+              </div>
+            </label>
+
+            <!-- Debit/Credit Card Mock -->
+            <label class="relative block rounded-xl border border-gray-200 hover:border-brand-500 p-4 cursor-pointer transition-all">
+              <input type="radio" name="payment_method" value="CARD" onclick="togglePaymentMock(true)"
+                class="absolute top-4 right-4 text-brand-600 focus:ring-brand-500"/>
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center"><i class="fa-solid fa-credit-card text-gray-600 text-lg"></i></div>
+                <div>
+                  <span class="font-bold text-gray-800 text-sm">Credit / Debit Card</span>
+                  <p class="text-xs text-gray-400 mt-0.5">Simulate 3D secure test card transactions.</p>
+                </div>
+              </div>
+            </label>
+
+            <!-- Card Mock Form Fields (Expanded only when CARD is chosen) -->
+            <div id="card-mock-fields" class="hidden pl-14 space-y-3 pt-2">
+              <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2">
+                  <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Card Number</label>
+                  <input type="text" placeholder="4242 4242 4242 4242" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50"/>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Expiry Date</label>
+                  <input type="text" placeholder="MM/YY" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50"/>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">CVV</label>
+                  <input type="password" placeholder="***" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50"/>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="w-full py-4 btn-primary rounded-xl font-bold shadow-lg mt-6">
+              Place Order &amp; Pay {{ total|inr }}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ======= ORDER SUMMARY ======= -->
+      <div class="space-y-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
+          <h3 class="font-display font-bold text-lg text-gray-800 border-b border-gray-100 pb-3">Items Summary</h3>
+          <div class="divide-y divide-gray-100 max-h-60 overflow-y-auto pr-2">
+            {% for item in cart.items.all %}
+            <div class="flex justify-between py-3 text-sm">
+              <div class="pr-4">
+                <p class="font-semibold text-gray-800 line-clamp-1">{{ item.product.name }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">Qty: {{ item.quantity }}</p>
+              </div>
+              <span class="font-bold text-gray-800 text-right">{{ item.subtotal|inr }}</span>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="border-t border-gray-100 pt-4 space-y-3 text-sm text-gray-600">
+            <div class="flex justify-between">
+              <span>Subtotal</span>
+              <span class="font-semibold text-gray-800">{{ subtotal|inr }}</span>
+            </div>
+            {% if discount > 0 %}
+            <div class="flex justify-between text-green-600 font-medium">
+              <span>Discount</span>
+              <span>- {{ discount|inr }}</span>
+            </div>
+            {% endif %}
+            <div class="flex justify-between">
+              <span>Shipping</span>
+              {% if shipping == 0 %}
+              <span class="text-green-600 font-bold">FREE</span>
+              {% else %}
+              <span class="font-semibold text-gray-800">{{ shipping|inr }}</span>
+              {% endif %}
+            </div>
+            <div class="border-t border-gray-100 pt-3.5 flex justify-between text-base font-bold text-gray-900">
+              <span>Grand Total</span>
+              <span>{{ total|inr }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function togglePaymentMock(show) {
+    const el = document.getElementById('card-mock-fields');
+    if (show) {
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+</script>
+{% endblock %}

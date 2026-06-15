@@ -1,0 +1,146 @@
+Implementation Plan: PremiumShop AI Ecommerce Platform
+PremiumShop AI is an enterprise-grade, highly scalable multi-category ecommerce web application built with Django, Django REST Framework, PostgreSQL, Redis, Celery, and a premium modern frontend using Tailwind CSS.
+
+This document outlines the detailed architectural blueprints, database schemas, URL routing structures, payment flows, and deployment configurations to ensure the project meets the highest standards of code quality and user experience.
+
+User Review Required
+We propose using a modern Tailwind CSS + HTML5/ES6 + HTMX stack for the frontend. This allows us to achieve a premium UI/UX (comparable to Nike Store, Apple Store, and Amazon) with smooth interactive elements (like slide-out carts, dynamic filters, and real-time checkout updates) without the overhead of a heavy single-page application framework (like React or Vue), which often degrades SEO.
+
+IMPORTANT
+
+Tailwind CSS Version: We will use Tailwind CSS v3.4 via its official standalone CLI/CDN configuration for development, with transition hooks and Custom Vanilla CSS utility classes for rich gradients, glassmorphism, and dark/light modes.
+
+Mock Integrations: For Cash on Delivery (COD), Stripe, and Razorpay, we will implement full backend controllers and success/failure webhook handling. In the local development sandbox, these will default to testing credentials or a mock simulator so you can verify the entire checkout loop without setting up live developer accounts.
+
+Database Configuration: By default, the application will attempt to connect to PostgreSQL if environment variables are provided in .env. If not, it will seamlessly fall back to SQLite for instant local development, ensuring developers can spin up the application with a single python manage.py migrate command.
+
+Open Questions
+WARNING
+
+Please review and provide feedback on the following implementation details:
+
+Social Login Providers: The authentication flow includes Google, Facebook, and GitHub. Do you have existing Django Allauth client IDs, or should we set up placeholders in the database settings for you to fill in later?
+SMS Notifications: For notifications, SMS is requested. Should we integrate a specific provider (like Twilio) or implement an extensible notification service layer that logs SMS messages to the console/files in development and can be swapped with a real gateway via settings?
+Bulk Upload Format: For product bulk uploading, is a specific CSV header structure preferred, or should we design a clean standard template and bundle an example CSV in the codebase?
+Proposed Changes
+We will organize the code using a highly modular directory structure, keeping business logic out of views and models by utilizing the Service-Repository Pattern.
+
+Project Structure Overview
+
+project_root/
+│
+├── manage.py
+├── requirements.txt
+├── .env.example
+├── .env
+├── .gitignore
+├── README.md
+├── Dockerfile
+├── docker-compose.yml
+├── nginx.conf
+│
+├── premiumshop/                  # Main Project Settings Folder
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── wsgi.py
+│   └── asgi.py
+│
+├── core/                        # Common Utilities, Templates, Base Layouts
+├── accounts/                    # Users, Profiles, Addresses, JWT Auth
+├── products/                    # Catalog, Categories, Brands, Variants, Inventory
+├── cart/                        # Cart, CartItems, and Coupon application logic
+├── orders/                      # Orders, OrderItems, State Tracking, Shipping
+├── payments/                    # Payment Gateway Integrations & Webhooks
+├── reviews/                     # Ratings, Reviews, Verified Badges
+├── wishlist/                    # Wishlist management
+├── notifications/               # In-app, Email, and SMS dispatchers
+└── dashboard/                   # User dashboard and Admin analytics panel
+Component Details & Database Schemas
+We will define Django models with explicit database indexes (db_index=True), unique constraints (UniqueConstraint), and standard relation names (related_name).
+
+1. Database Schema (models.py layouts)
+[NEW] 
+accounts/models.py
+User: Custom user extending AbstractUser. Uses email as the username field.
+Profile: One-to-one relationship with User. Stores phone number, profile image, wallet balance (DecimalField), and loyalty points.
+Address: Foreign key to User. Fields: recipient_name, phone_number, street_address, city, state, postal_code, country (default 'IN'), address_type (Home/Work), and is_default (BooleanField).
+[NEW] 
+products/models.py
+Category: Hierarchical model (parent FK to self). Fields: name, slug (unique), description, image, is_featured, meta_title, meta_description.
+Brand: Fields: name, slug (unique), logo, description, is_featured.
+Product: Fields: category (FK), brand (FK, optional), name, slug (unique), SKU (unique), description, price (DecimalField), discount_price (DecimalField, optional), stock (integer), is_active, is_low_stock (BooleanField), created_at, updated_at, meta_title, meta_description.
+ProductImage: Fields: product (FK), image, alt_text, is_featured (BooleanField).
+ProductVariant: Allows multiple attributes (e.g., Size, Color). Fields: product (FK), name (e.g., "Size"), value (e.g., "XL"), price_override (DecimalField, optional), stock (integer).
+[NEW] 
+cart/models.py
+Cart: Fields: user (FK, optional for anonymous checkout), session_key (char, optional), created_at, updated_at.
+CartItem: Fields: cart (FK), product (FK), variant (FK, optional), quantity (positive integer).
+Coupon: Fields: code (unique, uppercase), discount_type (Percentage/Fixed Amount/Free Shipping), value (DecimalField), min_purchase_amount (DecimalField), start_date, end_date, active (BooleanField), usage_limit (integer), times_used (integer).
+[NEW] 
+orders/models.py
+Order: Fields: user (FK, optional), order_number (unique string), status (choices: Pending, Confirmed, Packed, Shipped, Out for Delivery, Delivered, Cancelled, Returned, Refunded), shipping_address (JSONField or FK to snapshot address), payment_method (COD/Stripe/Razorpay), payment_status (Pending/Paid/Failed), subtotal, discount, shipping_charge, total, coupon (FK to Coupon, optional), tracking_number, created_at, updated_at.
+OrderItem: Fields: order (FK), product (FK), variant (FK, optional), quantity, price (DecimalField).
+[NEW] 
+payments/models.py
+Transaction: Fields: order (FK), gateway (Stripe/Razorpay), transaction_id (unique string), amount (DecimalField), status (Success/Failed/Refunded), raw_response (JSONField), created_at.
+[NEW] 
+reviews/models.py
+Review: Fields: product (FK), user (FK), rating (integer, 1-5), comment (text), is_verified_purchase (BooleanField), is_approved (BooleanField), helpful_votes (integer), created_at.
+ReviewImage: Fields: review (FK), image.
+[NEW] 
+wishlist/models.py
+Wishlist: Fields: user (OneToOne), products (ManyToManyField to Product).
+[NEW] 
+notifications/models.py
+Notification: Fields: user (FK), notification_type (Order/Shipping/Promotion), title, message, link, is_read (BooleanField), created_at.
+2. API Design (Django REST Framework)
+All APIs will be documentable and return standard JSON formats. We will secure endpoints using JWT (rest_framework_simplejwt).
+
+Endpoints List
+POST /api/auth/register/ - Registration of custom user.
+POST /api/auth/login/ - Login and returns JWT token.
+GET/PUT /api/accounts/profile/ - Retreive/update user profile.
+GET /api/products/ - Products catalog with filters (category, brand, price range, etc.) and search suggestions.
+GET /api/products/{id}/ - Product details including variants and reviews.
+GET/POST/PUT/DELETE /api/cart/ - Full cart operations.
+POST /api/cart/apply-coupon/ - Validates and applies promo code to active cart.
+POST /api/orders/checkout/ - Places an order, validates inventory, triggers payment gateways.
+POST /api/payments/webhook/stripe/ & post /api/payments/webhook/razorpay/ - Live webhook handling.
+POST /api/products/{id}/review/ - Post verified purchase rating/review.
+3. UI/UX & Tailwind Design Plan
+We will create a premium Responsive layout featuring:
+
+Global Base Layout (base.html): Includes Google Fonts (Inter + Outfit), FontAwesome, sticky responsive header with animated cart badge, responsive search bar, and custom language/currency switcher.
+Color Palette: Ultra-premium Slate/Indigo dark & light modes. Dark mode will transition seamlessly (dark:bg-slate-900 dark:text-slate-100).
+Home Page: Hero carousel with smooth slide transitions, categories slider, trending products grid, and interactive newsletter forms.
+Product Listing & Filtering: Side dynamic filtering sidebar (slide-out on mobile) using AJAX to dynamically load catalog contents without full page refresh.
+Product Detail: Multi-image gallery with hover zoom, variant selectors (changing variant automatically adjusts price), reviews listing, and question/answer section.
+Checkout Wizard: Clean multi-step visual bar (Address -> Shipping -> Payment -> Success).
+Admin Dashboard: Full analysis dashboard displaying sales reports, revenue graphs, and user registrations using Chart.js.
+4. Celery, Redis, and Caching Tasks
+Redis will act as both Django caching backend and Celery message broker.
+
+Cache Product Catalog: Product lists and detail responses will be cached to ensure sub-100ms response times.
+Celery Tasks:
+send_verification_email_task: Sends verification email asynchronously.
+send_order_confirmation_task: Dispatches transactional HTML emails and SMS logs.
+check_low_stock_alert_task: Daily inventory scan checking for products below threshold and notifying admins.
+expire_unused_carts_task: Periodic cleanup of stale guest carts.
+Verification Plan
+We will run automated tests to check core logic and perform manual visual checks to ensure UI/UX matches premium standards.
+
+Automated Tests
+Test cases for user registration, JWT login, and address management.
+Unit tests for the cart service, coupon code application rules, and order state transition logs.
+API validation tests for DRF endpoints. We will run tests using: python manage.py test
+Manual Verification
+Run local dev server inside the activated virtual environment: python manage.py runserver
+Test checkout flows using Stripe & Razorpay simulation modes.
+Access Admin Analytics to check Chart.js charts loading with mock dashboard data.
+Verify responsiveness using Chrome DevTools across various screen sizes.
+Agent
+ANTIGRAVITY-IDE
+
+
+AI may make mistakes. Double-check all generated code.

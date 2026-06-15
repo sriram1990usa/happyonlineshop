@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}My Profile — PremiumShop AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <div class="max-w-3xl mx-auto space-y-6">
+    <h1 class="font-display font-black text-3xl text-gray-900 flex items-center gap-3">
+      <i class="fa-regular fa-user text-brand-600"></i> My Profile
+    </h1>
+
+    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+      <div class="flex items-center gap-4 border-b border-gray-100 pb-5">
+        <div class="w-16 h-16 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-xl uppercase">
+          {{ request.user.first_name|first }}{{ request.user.last_name|first }}
+        </div>
+        <div>
+          <h2 class="font-display font-bold text-lg text-gray-800">{{ request.user.first_name }} {{ request.user.last_name }}</h2>
+          <p class="text-xs text-gray-400 font-mono">{{ request.user.email }}</p>
+        </div>
+      </div>
+
+      <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        
+        {% for field in form %}
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}
+          <p class="text-red-500 text-xs font-semibold">{{ field.errors.0 }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="px-6 py-3.5 btn-primary rounded-xl font-bold shadow-md hover:scale-[1.01] active:scale-[0.99] transition-transform">
+          Save Settings
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+tep 1: Deactivate and Close
+If your virtual environment is currently active in any terminal, deactivate it:
+powershell
+deactivate
+Close your IDE (VS Code, Cursor, etc.) or any terminal window pointing to ANTIGRAVITY-IDE to release file locks.
+Step 2: Rename the Folder
+Rename the directory from ANTIGRAVITY-IDE to PREMIUMSHOP-AI:
+
+Via File Explorer: Right-click the folder D:\DJANGO_PYTHON\ANTIGRAVITY-IDE -> select Rename -> type PREMIUMSHOP-AI.
+Via PowerShell:
+powershell
+cd D:\DJANGO_PYTHON
+Rename-Item -Path .\ANTIGRAVITY-IDE -NewName PREMIUMSHOP-AI
+Step 3: Delete and Recreate the Virtual Environment (venv)
+Because the old venv folder contains absolute paths to the old directory, you should delete and recreate it:
+
+Open a terminal in the newly renamed directory:
+powershell
+cd D:\DJANGO_PYTHON\PREMIUMSHOP-AI
+Delete the old venv folder:
+On Windows Command Prompt:
+cmd
+rmdir /s /q venv
+On PowerShell:
+powershell
+Remove-Item -Recurse -Force venv
+Recreate the Python virtual environment:
+powershell
+python -m venv venv
+Activate the newly created virtual environment:
+powershell
+.\venv\Scripts\activate
+Reinstall the project dependencies from requirements.txt:
+powershell
+pip install -r requirements.txt
+Step 4: Verify Local Server and Tests
+Run the automated tests to verify everything is operational in the new folder structure:
+
+powershell
+python manage.py test
+(All 18 tests will run and pass successfully)
+
+Start the local server to verify page rendering:
+
+powershell
+python manage.py runserver
+Impact on Production Deployment (Vercel/Git)
+Git Repository: Git operates entirely using relative paths inside the .git directory, so renaming the parent directory has zero impact on Git operations. You can safely init and push to GitHub using the new folder name.
+Vercel Hosting: Vercel does not upload your local virtual environment (venv) to its servers (it is excluded via .gitignore). Instead, Vercel reads requirements.txt and rebuilds the environment on their serverless nodes. Therefore, the local folder name change has no impact on Vercel production hosting.
+6:24 PM

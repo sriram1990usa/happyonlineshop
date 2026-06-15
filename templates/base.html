@@ -1,0 +1,408 @@
+{% load static %}{% load currency_filters %}
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}PremiumShop AI — Premium Shopping Experience{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Discover premium products across all categories at PremiumShop AI — your trusted destination for quality and value.{% endblock %}"/>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+
+  <!-- Tailwind CSS CDN (production build via CDN for dev convenience) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50:  '#f0f4ff',
+              100: '#dde6ff',
+              200: '#c0cfff',
+              300: '#94adff',
+              400: '#6080ff',
+              500: '#4055ff',
+              600: '#2b37f5',
+              700: '#2329e1',
+              800: '#1f24b6',
+              900: '#1e228f',
+            },
+            accent: {
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea6c00',
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.4s ease-out',
+            'slide-down': 'slideDown 0.3s ease-out',
+            'slide-up': 'slideUp 0.3s ease-out',
+            'pulse-slow': 'pulse 3s infinite',
+          },
+          keyframes: {
+            fadeIn:    { from: {opacity:'0', transform:'translateY(8px)'}, to: {opacity:'1', transform:'translateY(0)'} },
+            slideDown: { from: {opacity:'0', transform:'translateY(-12px)'}, to: {opacity:'1', transform:'translateY(0)'} },
+            slideUp:   { from: {opacity:'0', transform:'translateY(12px)'}, to: {opacity:'1', transform:'translateY(0)'} },
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; }
+    .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); }
+    .glass-dark { background: rgba(0,0,0,0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
+    .gradient-text { background: linear-gradient(135deg, #4055ff 0%, #fb923c 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .card-hover { transition: transform 0.25s ease, box-shadow 0.25s ease; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(64,85,255,0.15); }
+    .btn-primary { background: linear-gradient(135deg, #4055ff, #2b37f5); color: #fff; transition: all 0.2s; }
+    .btn-primary:hover { background: linear-gradient(135deg, #6080ff, #4055ff); box-shadow: 0 8px 24px rgba(64,85,255,0.4); transform: translateY(-1px); }
+    .nav-link { position: relative; }
+    .nav-link::after { content:''; position:absolute; bottom:-2px; left:0; width:0; height:2px; background:linear-gradient(90deg,#4055ff,#fb923c); transition:width 0.3s ease; }
+    .nav-link:hover::after { width:100%; }
+    .search-bar { transition: all 0.3s ease; }
+    .search-bar:focus { box-shadow: 0 0 0 3px rgba(64,85,255,0.3); }
+    .product-card img { transition: transform 0.4s ease; }
+    .product-card:hover img { transform: scale(1.06); }
+    .badge-sale { background: linear-gradient(135deg, #ff4757, #ff6b81); }
+    .star-filled { color: #f59e0b; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #4055ff; border-radius: 3px; }
+    .dropdown-menu { animation: slideDown 0.2s ease-out; }
+    .cart-badge { animation: pulse 1s ease-in-out; }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+    .toast-container { position:fixed; top:80px; right:20px; z-index:9999; }
+    .toast { animation: slideDown 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards; }
+    @keyframes fadeOut { to { opacity:0; transform:translateX(100%); } }
+    .hero-gradient { background: linear-gradient(135deg, #0d0d2b 0%, #1a1a4e 40%, #0d1117 100%); }
+    .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200%; animation: shimmer 1.5s infinite; }
+    @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased">
+
+<!-- ============ ANNOUNCEMENT BAR ============ -->
+<div class="bg-gradient-to-r from-brand-700 via-brand-600 to-accent-500 text-white text-center py-2 text-sm font-medium tracking-wide relative overflow-hidden">
+  <div class="animate-pulse-slow">🎉 Free shipping on orders above ₹499 &nbsp;|&nbsp; Use code <strong>FIRST10</strong> for 10% off your first order! 🚀</div>
+</div>
+
+<!-- ============ HEADER / NAVBAR ============ -->
+<header class="bg-white shadow-md sticky top-0 z-50 border-b border-gray-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16 gap-4">
+
+      <!-- Logo -->
+      <a href="{% url 'core:home' %}" class="flex items-center gap-2 flex-shrink-0 group">
+        <div class="w-9 h-9 rounded-xl btn-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+          <i class="fa-solid fa-bolt text-white text-base"></i>
+        </div>
+        <span class="font-display font-bold text-xl gradient-text hidden sm:block">PremiumShop AI</span>
+      </a>
+
+      <!-- Search Bar -->
+      <form method="GET" action="{% url 'products:list' %}" class="flex-1 max-w-xl hidden md:flex relative">
+        <div class="relative w-full">
+          <input id="global-search" type="text" name="q" value="{{ request.GET.q|default:'' }}"
+            placeholder="Search products, brands, categories…"
+            class="search-bar w-full pl-4 pr-12 py-2.5 rounded-xl border-2 border-gray-200 focus:border-brand-500 focus:outline-none text-sm bg-gray-50 transition-all"/>
+          <button type="submit" class="absolute right-0 top-0 bottom-0 px-4 bg-brand-600 hover:bg-brand-700 text-white rounded-r-xl transition-colors">
+            <i class="fa-solid fa-magnifying-glass text-sm"></i>
+          </button>
+        </div>
+      </form>
+
+      <!-- Right Actions -->
+      <div class="flex items-center gap-1 sm:gap-3">
+        <!-- Wishlist -->
+        <a href="{% url 'wishlist:wishlist' %}" class="relative p-2 rounded-xl text-gray-600 hover:text-brand-600 hover:bg-brand-50 transition-all group" title="Wishlist">
+          <i class="fa-regular fa-heart text-xl group-hover:scale-110 transition-transform"></i>
+        </a>
+
+        <!-- Cart -->
+        <a href="{% url 'cart:detail' %}" class="relative p-2 rounded-xl text-gray-600 hover:text-brand-600 hover:bg-brand-50 transition-all group" title="Cart" id="cart-icon">
+          <i class="fa-solid fa-cart-shopping text-xl group-hover:scale-110 transition-transform"></i>
+          {% if cart_count > 0 %}
+          <span id="cart-badge" class="cart-badge absolute -top-1 -right-1 bg-accent-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{{ cart_count }}</span>
+          {% else %}
+          <span id="cart-badge" class="absolute -top-1 -right-1 bg-accent-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 hidden"></span>
+          {% endif %}
+        </a>
+
+        <!-- User Menu -->
+        {% if request.user.is_authenticated %}
+        <div class="relative" x-data="{open:false}" @click.away="open=false">
+          <button @click="open=!open" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-brand-50 transition-all text-sm font-medium text-gray-700">
+            <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-sm">
+              {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+            </div>
+            <span class="hidden sm:block">{{ request.user.first_name }}</span>
+            <i class="fa-solid fa-chevron-down text-xs text-gray-400"></i>
+          </button>
+          <div x-show="open" class="dropdown-menu absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 overflow-hidden">
+            {% if request.user.is_staff %}
+            <a href="{% url 'dashboard:home' %}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-purple-700 hover:bg-purple-50 font-semibold">
+              <i class="fa-solid fa-gauge-high w-4"></i> Admin Dashboard
+            </a>
+            <div class="border-t border-gray-100 my-1"></div>
+            {% endif %}
+            <a href="{% url 'accounts:profile' %}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
+              <i class="fa-regular fa-user w-4"></i> My Profile
+            </a>
+            <a href="{% url 'orders:list' %}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
+              <i class="fa-solid fa-box w-4"></i> My Orders
+            </a>
+            <a href="{% url 'accounts:addresses' %}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
+              <i class="fa-solid fa-location-dot w-4"></i> Addresses
+            </a>
+            <a href="{% url 'wishlist:wishlist' %}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
+              <i class="fa-regular fa-heart w-4"></i> Wishlist
+            </a>
+            <div class="border-t border-gray-100 my-1"></div>
+            <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+              <button type="submit" class="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">
+                <i class="fa-solid fa-arrow-right-from-bracket w-4"></i> Sign Out
+              </button>
+            </form>
+          </div>
+        </div>
+        {% else %}
+        <a href="{% url 'accounts:login' %}" class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-brand-500 text-brand-600 hover:bg-brand-600 hover:text-white text-sm font-semibold transition-all">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i> Login
+        </a>
+        <a href="{% url 'accounts:register' %}" class="flex items-center gap-2 px-4 py-2 rounded-xl btn-primary text-sm font-semibold shadow-md">
+          Sign Up
+        </a>
+        {% endif %}
+
+        <!-- Mobile Search Toggle -->
+        <button id="mobile-search-btn" class="md:hidden p-2 rounded-xl text-gray-600 hover:bg-gray-100">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Search Bar -->
+    <div id="mobile-search" class="hidden md:hidden pb-3">
+      <form method="GET" action="{% url 'products:list' %}" class="flex">
+        <input type="text" name="q" placeholder="Search products…"
+          class="flex-1 pl-4 pr-2 py-2.5 rounded-l-xl border-2 border-gray-200 focus:border-brand-500 focus:outline-none text-sm"/>
+        <button type="submit" class="px-4 bg-brand-600 text-white rounded-r-xl">
+          <i class="fa-solid fa-magnifying-glass text-sm"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Category Nav -->
+  <nav class="bg-gray-50 border-t border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto">
+      <div class="flex items-center gap-6 py-2.5 text-sm font-medium whitespace-nowrap">
+        <a href="{% url 'products:list' %}" class="nav-link text-brand-700 font-semibold flex items-center gap-1.5 hover:text-brand-600 transition-colors">
+          <i class="fa-solid fa-layer-group text-xs"></i> All Products
+        </a>
+        {% for cat in nav_categories %}
+        <a href="{% url 'products:list' %}?category={{ cat.slug }}" class="nav-link text-gray-600 hover:text-brand-600 transition-colors flex items-center gap-1.5">
+          {% if cat.icon %}<i class="{{ cat.icon }} text-xs text-accent-500"></i>{% endif %}
+          {{ cat.name }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </nav>
+</header>
+
+<!-- ============ TOAST MESSAGES ============ -->
+{% if messages %}
+<div class="toast-container space-y-2" id="toast-container">
+  {% for message in messages %}
+  <div class="toast flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl max-w-xs
+    {% if message.tags == 'error' %}bg-red-600{% elif message.tags == 'warning' %}bg-yellow-500{% else %}bg-brand-600{% endif %} text-white">
+    <i class="fa-solid {% if message.tags == 'error' %}fa-circle-xmark{% elif message.tags == 'warning' %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+    <span class="text-sm font-medium">{{ message }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ============ MAIN CONTENT ============ -->
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="bg-gray-900 text-gray-300 mt-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+
+      <!-- Brand Info -->
+      <div class="space-y-4">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl btn-primary flex items-center justify-center">
+            <i class="fa-solid fa-bolt text-white text-base"></i>
+          </div>
+          <span class="font-display font-bold text-xl text-white">PremiumShop AI</span>
+        </div>
+        <p class="text-sm leading-relaxed text-gray-400">Your ultimate destination for premium products. Shop with confidence — quality guaranteed.</p>
+        <div class="flex gap-3">
+          <a href="#" class="w-9 h-9 rounded-lg bg-white/10 hover:bg-brand-600 flex items-center justify-center transition-all"><i class="fab fa-facebook-f text-sm"></i></a>
+          <a href="#" class="w-9 h-9 rounded-lg bg-white/10 hover:bg-pink-600 flex items-center justify-center transition-all"><i class="fab fa-instagram text-sm"></i></a>
+          <a href="#" class="w-9 h-9 rounded-lg bg-white/10 hover:bg-sky-500 flex items-center justify-center transition-all"><i class="fab fa-twitter text-sm"></i></a>
+          <a href="#" class="w-9 h-9 rounded-lg bg-white/10 hover:bg-red-600 flex items-center justify-center transition-all"><i class="fab fa-youtube text-sm"></i></a>
+        </div>
+      </div>
+
+      <!-- Quick Links -->
+      <div>
+        <h4 class="text-white font-semibold mb-4 text-base">Quick Links</h4>
+        <ul class="space-y-2.5 text-sm">
+          <li><a href="{% url 'products:list' %}" class="hover:text-brand-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-chevron-right text-xs text-brand-500"></i>All Products</a></li>
+          <li><a href="{% url 'cart:detail' %}" class="hover:text-brand-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-chevron-right text-xs text-brand-500"></i>Shopping Cart</a></li>
+          <li><a href="{% url 'wishlist:wishlist' %}" class="hover:text-brand-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-chevron-right text-xs text-brand-500"></i>Wishlist</a></li>
+          {% if request.user.is_authenticated %}
+          <li><a href="{% url 'orders:list' %}" class="hover:text-brand-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-chevron-right text-xs text-brand-500"></i>My Orders</a></li>
+          {% else %}
+          <li><a href="{% url 'accounts:register' %}" class="hover:text-brand-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-chevron-right text-xs text-brand-500"></i>Create Account</a></li>
+          {% endif %}
+        </ul>
+      </div>
+
+      <!-- Customer Care -->
+      <div>
+        <h4 class="text-white font-semibold mb-4 text-base">Customer Care</h4>
+        <ul class="space-y-2.5 text-sm">
+          <li><a href="#" class="hover:text-brand-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-chevron-right text-xs text-brand-500"></i>Help Center</a></li>
+          <li><a href="#" class="hover:text-brand-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-chevron-right text-xs text-brand-500"></i>Returns &amp; Refunds</a></li>
+          <li><a href="#" class="hover:text-brand-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-chevron-right text-xs text-brand-500"></i>Track Order</a></li>
+          <li><a href="#" class="hover:text-brand-400 transition-colors flex items-center gap-2"><i class="fa-solid fa-chevron-right text-xs text-brand-500"></i>Privacy Policy</a></li>
+        </ul>
+      </div>
+
+      <!-- Newsletter -->
+      <div>
+        <h4 class="text-white font-semibold mb-4 text-base">Stay Updated</h4>
+        <p class="text-sm text-gray-400 mb-4">Subscribe for exclusive deals and new arrivals.</p>
+        <form class="flex gap-2" onsubmit="event.preventDefault(); this.innerHTML='<p class=\'text-green-400 text-sm\'>✓ Subscribed! Thank you.</p>'">
+          <input type="email" placeholder="your@email.com" class="flex-1 px-3 py-2.5 rounded-lg bg-white/10 border border-white/20 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500"/>
+          <button type="submit" class="px-4 py-2.5 btn-primary rounded-lg text-sm font-semibold">Go</button>
+        </form>
+        <div class="mt-5 flex items-center gap-3 flex-wrap">
+          <div class="flex items-center gap-1.5 text-xs text-gray-500"><i class="fa-solid fa-shield-halved text-green-400"></i> 100% Secure</div>
+          <div class="flex items-center gap-1.5 text-xs text-gray-500"><i class="fa-solid fa-truck-fast text-brand-400"></i> Fast Delivery</div>
+          <div class="flex items-center gap-1.5 text-xs text-gray-500"><i class="fa-solid fa-rotate-left text-accent-400"></i> Easy Returns</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Bottom -->
+  <div class="border-t border-white/10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500">
+      <p>© 2025 PremiumShop AI. All rights reserved.</p>
+      <div class="flex items-center gap-4">
+        <i class="fab fa-cc-visa text-2xl text-gray-400"></i>
+        <i class="fab fa-cc-mastercard text-2xl text-gray-400"></i>
+        <i class="fab fa-cc-paypal text-2xl text-gray-400"></i>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo-vector.svg/200px-UPI-Logo-vector.svg.png" alt="UPI" class="h-5 opacity-50 filter invert"/>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ============ Alpine.js for dropdowns ============ -->
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+<script>
+// Mobile search toggle
+document.getElementById('mobile-search-btn')?.addEventListener('click', function () {
+  const el = document.getElementById('mobile-search');
+  el.classList.toggle('hidden');
+});
+
+// Auto-dismiss toasts
+setTimeout(() => {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+}, 3500);
+
+// CSRF helper for AJAX
+function getCookie(name) {
+  let value = '; ' + document.cookie;
+  let parts = value.split('; ' + name + '=');
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+const CSRF_TOKEN = getCookie('csrftoken');
+
+// Global add-to-cart with toast
+function addToCart(productId, variantId, quantity = 1) {
+  fetch('/cart/add/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN},
+    body: JSON.stringify({product_id: productId, variant_id: variantId, quantity: quantity})
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      // Update badge
+      const badge = document.getElementById('cart-badge');
+      if (badge) {
+        badge.textContent = data.cart_count;
+        badge.classList.remove('hidden');
+        badge.classList.add('cart-badge');
+      }
+      showToast(data.message || 'Added to cart!', 'success');
+    } else {
+      showToast(data.message || 'Error adding to cart', 'error');
+    }
+  });
+}
+
+function showToast(msg, type='success') {
+  const container = document.getElementById('toast-container') || (() => {
+    const el = document.createElement('div');
+    el.id = 'toast-container';
+    el.className = 'toast-container space-y-2';
+    document.body.appendChild(el);
+    return el;
+  })();
+  const toast = document.createElement('div');
+  toast.className = `toast flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl max-w-xs ${type === 'error' ? 'bg-red-600' : 'bg-brand-600'} text-white`;
+  toast.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check'}"></i><span class="text-sm font-medium">${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
+
+// Wishlist toggle
+function toggleWishlist(btn, productId) {
+  fetch(`/wishlist/toggle/${productId}/`, {
+    method: 'POST',
+    headers: {'X-CSRFToken': CSRF_TOKEN}
+  })
+  .then(r => r.json())
+  .then(data => {
+    const icon = btn.querySelector('i');
+    if (data.added) {
+      icon.classList.remove('fa-regular'); icon.classList.add('fa-solid'); icon.style.color = '#ef4444';
+    } else {
+      icon.classList.remove('fa-solid'); icon.classList.add('fa-regular'); icon.style.color = '';
+    }
+    showToast(data.message, 'success');
+  });
+}
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

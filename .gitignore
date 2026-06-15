@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.env
+media/
+staticfiles/
+db.sqlite3
+*.log
+.system_generated/
+/theme/node_modules/
+/theme/static_src/node_modules/
+vercel-deploy-steps

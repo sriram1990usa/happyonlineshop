@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Manage Addresses — PremiumShop AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+    
+    <!-- Left panel: List existing addresses -->
+    <div class="md:col-span-2 space-y-6">
+      <h1 class="font-display font-black text-2xl text-gray-900 flex items-center gap-2">
+        <i class="fa-solid fa-location-dot text-brand-600"></i> Saved Addresses
+      </h1>
+
+      {% if addresses %}
+      <div class="space-y-4">
+        {% for addr in addresses %}
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative space-y-3">
+          {% if addr.is_default %}
+          <span class="absolute top-4 right-4 bg-brand-100 text-brand-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Default</span>
+          {% endif %}
+
+          <div class="flex items-center gap-2">
+            <h3 class="font-bold text-gray-800 text-sm">{{ addr.recipient_name }}</h3>
+            <span class="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">{{ addr.address_type }}</span>
+          </div>
+
+          <div class="text-sm text-gray-600 leading-relaxed">
+            <p>{{ addr.street_address }}</p>
+            <p>{{ addr.city }}, {{ addr.state }} - {{ addr.postal_code }}</p>
+            <p class="text-xs text-gray-400 mt-1"><i class="fa-solid fa-phone"></i> {{ addr.phone_number }}</p>
+          </div>
+
+          <div class="flex gap-4 pt-2 border-t border-gray-100">
+            <form method="POST" action="{% url 'accounts:delete_address' addr.id %}">
+              {% csrf_token %}
+              <button type="submit" class="text-xs font-bold text-red-500 hover:text-red-600 flex items-center gap-1">
+                <i class="fa-regular fa-trash-can"></i> Delete
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-gray-500 text-sm italic bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">No saved addresses found.</p>
+      {% endif %}
+    </div>
+
+    <!-- Right panel: Add new address form -->
+    <div>
+      <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
+        <h2 class="font-display font-bold text-lg text-gray-800 pb-3 border-b border-gray-100">Add Address</h2>
+        <form method="POST" class="space-y-3">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="space-y-1">
+            <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">{{ field.label }}</label>
+            {% if field.name == 'address_type' %}
+              <select name="{{ field.name }}" required
+                class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-brand-500 focus:outline-none text-xs transition-all bg-gray-50 font-semibold text-gray-700">
+                {% for val, label in field.field.choices %}
+                  <option value="{{ val }}" {% if field.value == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            {% elif field.field.widget.input_type == 'checkbox' %}
+              {{ field }}
+            {% else %}
+              <input type="{{ field.field.widget.input_type|default:'text' }}" name="{{ field.name }}" required
+                placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
+                class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-brand-500 focus:outline-none text-xs transition-all bg-gray-50"/>
+            {% endif %}
+            {% if field.errors %}
+            <p class="text-red-500 text-[10px] font-semibold">{{ field.errors.0 }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+          <button type="submit" class="w-full py-3 btn-primary rounded-xl text-xs font-bold shadow-md">
+            Save Address
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

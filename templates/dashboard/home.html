@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+{% block title %}Admin Dashboard — PremiumShop AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <div class="space-y-8">
+    <div class="flex items-center justify-between">
+      <h1 class="font-display font-black text-3xl text-gray-900">Admin Dashboard</h1>
+      <div class="flex items-center gap-3">
+        <a href="{% url 'dashboard:orders' %}" class="px-4 py-2 border border-gray-200 text-xs font-bold text-gray-700 rounded-xl hover:bg-gray-50 bg-white transition-colors shadow-sm">
+          <i class="fa-solid fa-boxes-packing mr-1.5 text-brand-600"></i> Manage Orders
+        </a>
+        <a href="{% url 'dashboard:products' %}" class="px-4 py-2 border border-gray-200 text-xs font-bold text-gray-700 rounded-xl hover:bg-gray-50 bg-white transition-colors shadow-sm">
+          <i class="fa-solid fa-tags mr-1.5 text-brand-600"></i> Manage Products
+        </a>
+      </div>
+    </div>
+
+    <!-- Metrics Grid -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-5">
+      <!-- Revenue -->
+      <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center text-xl flex-shrink-0">
+          <i class="fa-solid fa-indian-rupee-sign"></i>
+        </div>
+        <div>
+          <span class="text-xs text-gray-400 font-semibold block">Total Revenue</span>
+          <span class="text-xl font-bold text-gray-800">{{ total_revenue|inr }}</span>
+        </div>
+      </div>
+      <!-- Orders -->
+      <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl flex-shrink-0">
+          <i class="fa-solid fa-cart-flatbed-suitcase"></i>
+        </div>
+        <div>
+          <span class="text-xs text-gray-400 font-semibold block">Total Orders</span>
+          <span class="text-xl font-bold text-gray-800">{{ total_orders }}</span>
+        </div>
+      </div>
+      <!-- Customers -->
+      <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl flex-shrink-0">
+          <i class="fa-solid fa-users"></i>
+        </div>
+        <div>
+          <span class="text-xs text-gray-400 font-semibold block">Customers</span>
+          <span class="text-xl font-bold text-gray-800">{{ total_customers }}</span>
+        </div>
+      </div>
+      <!-- Products -->
+      <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl flex-shrink-0">
+          <i class="fa-solid fa-tag"></i>
+        </div>
+        <div>
+          <span class="text-xs text-gray-400 font-semibold block">Active Products</span>
+          <span class="text-xl font-bold text-gray-800">{{ total_products }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart & Low Stock -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Revenue Trend Chart -->
+      <div class="lg:col-span-2 bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+        <h3 class="font-display font-bold text-base text-gray-800 pb-3 border-b border-gray-100">Revenue Trend (Last 7 Days)</h3>
+        <div class="h-64 relative">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Low Stock Alerts -->
+      <div class="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
+        <h3 class="font-display font-bold text-base text-gray-800 pb-3 border-b border-gray-100">Low Stock Alert</h3>
+        <div class="space-y-3 overflow-y-auto max-h-64 pr-2">
+          {% for item in low_stock %}
+          <div class="flex items-center justify-between text-xs sm:text-sm bg-red-50/50 p-2.5 rounded-xl border border-red-100">
+            <span class="font-medium text-gray-800 truncate flex-1 pr-3">{{ item.name }}</span>
+            <span class="font-bold text-red-600 whitespace-nowrap">{{ item.stock }} left</span>
+          </div>
+          {% empty %}
+          <p class="text-xs text-gray-400 italic">All products are well stocked.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Orders Table -->
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="font-display font-bold text-base text-gray-800">Recent Orders</h3>
+        <a href="{% url 'dashboard:orders' %}" class="text-xs text-brand-600 font-bold hover:underline">View All Orders</a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs sm:text-sm">
+          <thead class="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider">
+            <tr>
+              <th class="px-6 py-4">Order Number</th>
+              <th class="px-6 py-4">Customer</th>
+              <th class="px-6 py-4">Total</th>
+              <th class="px-6 py-4">Status</th>
+              <th class="px-6 py-4">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for order in recent_orders %}
+            <tr class="hover:bg-gray-50/50 transition-colors">
+              <td class="px-6 py-4 font-bold font-mono text-brand-600">#{{ order.order_number }}</td>
+              <td class="px-6 py-4 font-medium text-gray-800">{{ order.user.first_name }} {{ order.user.last_name }}</td>
+              <td class="px-6 py-4 font-bold text-gray-900">{{ order.total|inr }}</td>
+              <td class="px-6 py-4">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                  {% if order.status == 'DELIVERED' %}bg-green-100 text-green-700
+                  {% elif order.status == 'CANCELLED' %}bg-red-100 text-red-700
+                  {% else %}bg-blue-100 text-blue-700{% endif %}">
+                  {{ order.status }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <a href="{% url 'orders:detail' order.order_number %}" class="text-brand-600 font-bold hover:underline">Details</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('revenueChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: {{ daily_labels|safe }},
+      datasets: [{
+        label: 'Revenue (₹)',
+        data: {{ daily_revenue|safe }},
+        borderColor: '#4055ff',
+        backgroundColor: 'rgba(64, 85, 255, 0.05)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+</script>
+{% endblock %}

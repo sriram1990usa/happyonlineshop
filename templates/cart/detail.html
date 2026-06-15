@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}{% load currency_filters %}
+{% block title %}Shopping Cart — PremiumShop AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <h1 class="font-display font-black text-3xl text-gray-900 mb-8 flex items-center gap-3">
+    <i class="fa-solid fa-cart-shopping text-brand-600"></i> Shopping Cart
+  </h1>
+
+  {% if cart.items.exists %}
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- ======= CART ITEMS LIST ======= -->
+    <div class="lg:col-span-2 space-y-4">
+      {% for item in cart.items.all %}
+      <div id="cart-item-row-{{ item.id }}" class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 card-hover animate-fade-in">
+        <div class="flex items-center gap-4">
+          <!-- Item image -->
+          <div class="w-20 h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0 border border-gray-100 flex items-center justify-center">
+            {% if item.product.images.first %}
+            <img src="{{ item.product.images.first.image.url }}" alt="{{ item.product.name }}" class="w-full h-full object-cover"/>
+            {% else %}
+            <div class="text-3xl">🛍️</div>
+            {% endif %}
+          </div>
+          <!-- Item details -->
+          <div>
+            <h3 class="font-semibold text-gray-800 text-sm leading-tight hover:text-brand-600 transition-colors">
+              <a href="{% url 'products:detail' item.product.slug %}">{{ item.product.name }}</a>
+            </h3>
+            {% if item.variant %}
+            <p class="text-xs text-gray-400 mt-1 font-medium bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full inline-block">
+              {{ item.variant.name }}: {{ item.variant.value }}
+            </p>
+            {% endif %}
+            <p class="text-sm font-bold text-gray-900 mt-1">{{ item.unit_price|inr }}</p>
+          </div>
+        </div>
+
+        <!-- Quantity Adjuster & Total -->
+        <div class="flex sm:flex-col items-end justify-between w-full sm:w-auto gap-4">
+          <div class="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
+            <button onclick="updateQuantity({{ item.id }}, -1)" class="px-2.5 py-1 text-gray-500 hover:bg-gray-100 font-bold transition-all">-</button>
+            <input id="item-qty-{{ item.id }}" type="number" value="{{ item.quantity }}" min="1" max="10" readonly
+              class="w-10 text-center text-xs font-bold bg-transparent border-none focus:outline-none"/>
+            <button onclick="updateQuantity({{ item.id }}, 1)" class="px-2.5 py-1 text-gray-500 hover:bg-gray-100 font-bold transition-all">+</button>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-gray-400">Total:</span>
+            <span id="item-subtotal-{{ item.id }}" class="font-bold text-sm text-gray-800">{{ item.subtotal|inr }}</span>
+            <button onclick="removeItem({{ item.id }})" class="text-red-500 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-colors" title="Remove item">
+              <i class="fa-regular fa-trash-can text-sm"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- ======= ORDER SUMMARY ======= -->
+    <div>
+      <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6 sticky top-24">
+        <h3 class="font-display font-bold text-lg text-gray-800 pb-3 border-b border-gray-100">Order Summary</h3>
+
+        <!-- Coupon Form -->
+        <form action="{% url 'cart:apply_coupon' %}" method="POST" class="space-y-2">
+          {% csrf_token %}
+          <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider">Promo Code</label>
+          <div class="flex gap-2">
+            <input type="text" name="code" placeholder="ENTER CODE"
+              class="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs font-semibold uppercase focus:outline-none focus:border-brand-500 bg-gray-50"/>
+            <button type="submit" class="px-4 py-2 btn-primary rounded-lg text-xs font-bold transition-all">Apply</button>
+          </div>
+        </form>
+
+        <!-- Pricing details -->
+        <div class="space-y-3.5 text-sm text-gray-600">
+          <div class="flex justify-between">
+            <span>Subtotal</span>
+            <span id="summary-subtotal" class="font-semibold text-gray-800">{{ cart.subtotal|inr }}</span>
+          </div>
+          {% if cart.coupon %}
+          <div class="flex justify-between text-green-600 font-medium">
+            <span>Discount ({{ cart.coupon.code }})</span>
+            <span>- {{ cart.discount|inr }}</span>
+          </div>
+          {% endif %}
+          <div class="flex justify-between">
+            <span>Shipping Charge</span>
+            {% if cart.shipping_charge == 0 %}
+            <span class="text-green-600 font-bold">FREE</span>
+            {% else %}
+            <span class="font-semibold text-gray-800">{{ cart.shipping_charge|inr }}</span>
+            {% endif %}
+          </div>
+          <div class="border-t border-gray-100 pt-4 flex justify-between text-base font-bold text-gray-900">
+            <span>Total Amount</span>
+            <span id="summary-total">{{ cart.total|inr }}</span>
+          </div>
+        </div>
+
+        <!-- Checkout action -->
+        <a href="{% url 'orders:checkout_address' %}" class="block w-full py-3.5 btn-primary rounded-xl font-bold text-center shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-transform">
+          Proceed to Checkout <i class="fa-solid fa-arrow-right ml-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <!-- Empty Cart State -->
+  <div class="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm max-w-xl mx-auto">
+    <div class="text-7xl mb-4">🛒</div>
+    <h2 class="font-display text-2xl font-bold text-gray-800 mb-2">Your cart is empty</h2>
+    <p class="text-gray-500 mb-8">Add items to your cart to start shopping.</p>
+    <a href="{% url 'products:list' %}" class="inline-flex items-center gap-2 px-6 py-3.5 btn-primary rounded-xl font-bold">
+      Explore Products <i class="fa-solid fa-bolt"></i>
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function updateQuantity(itemId, change) {
+    const input = document.getElementById(`item-qty-${itemId}`);
+    let newQty = parseInt(input.value) + change;
+    if (newQty < 1) return;
+    if (newQty > 10) return;
+
+    fetch(`/cart/update/${itemId}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': CSRF_TOKEN
+      },
+      body: JSON.stringify({quantity: newQty})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        input.value = newQty;
+        // Update badge
+        const badge = document.getElementById('cart-badge');
+        if (badge) {
+          badge.textContent = data.cart_count;
+        }
+        // Reload page to re-calculate everything including coupon discounts correctly
+        window.location.reload();
+      }
+    });
+  }
+
+  function removeItem(itemId) {
+    fetch(`/cart/remove/${itemId}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': CSRF_TOKEN
+      }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        const row = document.getElementById(`cart-item-row-${itemId}`);
+        if (row) {
+          row.style.opacity = '0';
+          row.style.transform = 'translateY(10px)';
+          setTimeout(() => {
+            row.remove();
+            window.location.reload();
+          }, 300);
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}
