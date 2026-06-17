@@ -5,7 +5,11 @@ echo "=== Starting Django Build Process ==="
 
 # 1. Install project dependencies
 echo "Installing dependencies from requirements.txt..."
-python3 -m pip install -r requirements.txt
+if command -v uv &> /dev/null; then
+    uv pip install --system -r requirements.txt
+else
+    python3 -m pip install -r requirements.txt --break-system-packages
+fi
 
 # 2. Clear out old static files and collect fresh ones
 echo "Collecting static files..."
