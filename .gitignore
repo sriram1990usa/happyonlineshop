@@ -10,3 +10,5 @@ db.sqlite3
 /theme/node_modules/
 /theme/static_src/node_modules/
 vercel-deploy-steps
+
+.vercel
