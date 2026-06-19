@@ -34,10 +34,14 @@ def debug_admin(request):
         if not su:
             return HttpResponse("No superuser found to run diagnostics. Please create a superuser first.")
         
+        from django.test import Client
         from django.contrib.admin.sites import site
-        from django.test import RequestFactory
+        import traceback
         
-        rf = RequestFactory()
+        # Initialize test client and force login
+        client = Client()
+        client.force_login(su)
+        
         results = []
         
         # Sort registered models by app and name
@@ -50,21 +54,31 @@ def debug_admin(request):
             add_url = f'/admin/{app_label}/{model_name}/add/'
             
             try:
-                req = rf.get(add_url)
-                req.user = su
-                response = model_admin.add_view(req)
-                results.append(f"<li><strong>{app_label}.{model._meta.object_name}</strong>: OK (status {response.status_code})</li>")
+                # Use client.get to execute the entire request lifecycle (middleware + views)
+                response = client.get(add_url)
+                if response.status_code == 500:
+                    results.append(f"""
+                    <li style="margin-bottom: 20px;">
+                        <strong style="color: #d32f2f;">{app_label}.{model._meta.object_name} (Returned 500)</strong><br>
+                        URL: <code>{add_url}</code><br>
+                        <div style="background: #ffebee; border: 1px solid #ffcdd2; padding: 10px; color: #b71c1c; max-height: 300px; overflow-y: auto; font-family: monospace;">
+                            {response.content.decode('utf-8', errors='ignore')}
+                        </div>
+                    </li>
+                    """)
+                else:
+                    results.append(f"<li><strong>{app_label}.{model._meta.object_name}</strong>: OK (status {response.status_code})</li>")
             except Exception as e:
                 tb = traceback.format_exc()
                 results.append(f"""
                 <li style="margin-bottom: 20px;">
-                    <strong style="color: #d32f2f;">{app_label}.{model._meta.object_name} (Failed)</strong><br>
+                    <strong style="color: #d32f2f;">{app_label}.{model._meta.object_name} (Raised Exception)</strong><br>
                     URL: <code>{add_url}</code><br>
                     <pre style="background: #ffebee; border: 1px solid #ffcdd2; padding: 10px; color: #b71c1c; overflow-x: auto; border-radius: 4px;">{tb}</pre>
                 </li>
                 """)
                 
-        return HttpResponse(f"<h2>Admin Model Diagnostics</h2><ul>{''.join(results)}</ul>", content_type="text/html")
+        return HttpResponse(f"<h2>Admin Model Diagnostics (with Middleware)</h2><ul>{''.join(results)}</ul>", content_type="text/html")
         
     except Exception as e:
         tb = traceback.format_exc()
