@@ -5,5 +5,5 @@ app_name = 'core'
 
 urlpatterns = [
     path('', views.HomeView.as_view(), name='home'),
-    path('debug-category/', views.debug_add_category, name='debug_add_category'),
+    path('debug-admin/', views.debug_admin, name='debug_admin'),
 ]

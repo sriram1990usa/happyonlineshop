@@ -27,7 +27,7 @@ import traceback
 from django.http import HttpResponse
 from django.contrib.auth import get_user_model
 
-def debug_add_category(request):
+def debug_admin(request):
     try:
         User = get_user_model()
         su = User.objects.filter(is_superuser=True).first()
@@ -38,14 +38,34 @@ def debug_add_category(request):
         from django.test import RequestFactory
         
         rf = RequestFactory()
-        req = rf.get('/admin/products/category/add/')
-        req.user = su
+        results = []
         
-        category_admin = site._registry[Category]
-        # Call the add_view directly to simulate rendering the form
-        response = category_admin.add_view(req)
-        return HttpResponse(f"Success! Admin page loaded successfully with status: {response.status_code}")
+        # Sort registered models by app and name
+        registry = list(site._registry.items())
+        registry.sort(key=lambda item: (item[0]._meta.app_label, item[0]._meta.model_name))
+        
+        for model, model_admin in registry:
+            app_label = model._meta.app_label
+            model_name = model._meta.model_name
+            add_url = f'/admin/{app_label}/{model_name}/add/'
+            
+            try:
+                req = rf.get(add_url)
+                req.user = su
+                response = model_admin.add_view(req)
+                results.append(f"<li><strong>{app_label}.{model._meta.object_name}</strong>: OK (status {response.status_code})</li>")
+            except Exception as e:
+                tb = traceback.format_exc()
+                results.append(f"""
+                <li style="margin-bottom: 20px;">
+                    <strong style="color: #d32f2f;">{app_label}.{model._meta.object_name} (Failed)</strong><br>
+                    URL: <code>{add_url}</code><br>
+                    <pre style="background: #ffebee; border: 1px solid #ffcdd2; padding: 10px; color: #b71c1c; overflow-x: auto; border-radius: 4px;">{tb}</pre>
+                </li>
+                """)
+                
+        return HttpResponse(f"<h2>Admin Model Diagnostics</h2><ul>{''.join(results)}</ul>", content_type="text/html")
         
     except Exception as e:
         tb = traceback.format_exc()
-        return HttpResponse(f"<h3>Exception Traceback:</h3><pre>{tb}</pre>", content_type="text/html")
+        return HttpResponse(f"<h3>Global Diagnostic Exception:</h3><pre>{tb}</pre>", content_type="text/html")
