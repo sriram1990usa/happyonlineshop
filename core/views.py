@@ -125,9 +125,15 @@ class ExceptionLoggingMiddleware:
 
 def show_debug_errors(request):
     from notifications.models import Notification
+    from django.contrib.auth import get_user_model
+    
+    User = get_user_model()
+    superusers = [u.email for u in User.objects.filter(is_superuser=True)]
+    
     errors = Notification.objects.filter(title__startswith="Exception at")
     
-    html = ["<h2>Logged Server Exceptions</h2>"]
+    html = [f"<h2>Admin Superusers in Database</h2><p>{', '.join(superusers)}</p>"]
+    html.append("<h2>Logged Server Exceptions</h2>")
     if not errors.exists():
         html.append("<p>No exceptions logged yet.</p>")
     else:
