@@ -2,6 +2,7 @@
 # Exit immediately if any command exits with a non-zero status
 set -e
 echo "=== Starting Django Build Process ==="
+export BUILDING_STATIC=True
 
 # 1. Install project dependencies in a virtual environment
 echo "Setting up Python environment..."
