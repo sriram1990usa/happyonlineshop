@@ -55,7 +55,7 @@ def debug_admin(request):
             
             try:
                 # Use client.get to execute the entire request lifecycle (middleware + views)
-                response = client.get(add_url)
+                response = client.get(add_url, secure=True)
                 if response.status_code == 500:
                     results.append(f"""
                     <li style="margin-bottom: 20px;">
