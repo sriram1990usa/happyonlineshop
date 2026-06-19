@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .env
 IMAGES/
+IMAGES 
 media/
 staticfiles/
 db.sqlite3
