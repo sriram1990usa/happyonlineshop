@@ -56,6 +56,12 @@ def debug_admin(request):
             try:
                 # Use client.get to execute the entire request lifecycle (middleware + views)
                 response = client.get(add_url, secure=True)
+                
+                # Extract page title to verify if it redirected to login
+                import re
+                title_match = re.search(r'<title>(.*?)</title>', response.content.decode('utf-8', errors='ignore'), re.IGNORECASE)
+                title = title_match.group(1) if title_match else "No Title"
+                
                 if response.status_code == 500:
                     results.append(f"""
                     <li style="margin-bottom: 20px;">
@@ -67,7 +73,7 @@ def debug_admin(request):
                     </li>
                     """)
                 else:
-                    results.append(f"<li><strong>{app_label}.{model._meta.object_name}</strong>: OK (status {response.status_code})</li>")
+                    results.append(f"<li><strong>{app_label}.{model._meta.object_name}</strong>: OK (status {response.status_code}, title: '{title}')</li>")
             except Exception as e:
                 tb = traceback.format_exc()
                 results.append(f"""
