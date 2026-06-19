@@ -89,3 +89,55 @@ def debug_admin(request):
     except Exception as e:
         tb = traceback.format_exc()
         return HttpResponse(f"<h3>Global Diagnostic Exception:</h3><pre>{tb}</pre>", content_type="text/html")
+
+
+class ExceptionLoggingMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        return response
+
+    def process_exception(self, request, exception):
+        try:
+            import traceback
+            tb = traceback.format_exc()
+            
+            from django.contrib.auth import get_user_model
+            from notifications.models import Notification
+            
+            User = get_user_model()
+            user = User.objects.filter(is_superuser=True).first() or User.objects.first()
+            
+            if user:
+                Notification.objects.create(
+                    user=user,
+                    notification_type='ORDER',
+                    title=f"Exception at {request.path}",
+                    message=f"Exception: {str(exception)}\n\nTraceback:\n{tb}",
+                    link=request.path
+                )
+        except Exception:
+            pass
+        return None
+
+
+def show_debug_errors(request):
+    from notifications.models import Notification
+    errors = Notification.objects.filter(title__startswith="Exception at")
+    
+    html = ["<h2>Logged Server Exceptions</h2>"]
+    if not errors.exists():
+        html.append("<p>No exceptions logged yet.</p>")
+    else:
+        for err in errors:
+            html.append(f"""
+            <div style="border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 4px; background: #fdfdfd; font-family: sans-serif;">
+                <h3 style="color: #c62828; margin-top: 0;">{err.title}</h3>
+                <small style="color: #666;">Logged at: {err.created_at}</small>
+                <pre style="background: #f4f4f4; padding: 10px; border: 1px solid #ddd; overflow-x: auto; margin-top: 10px; border-radius: 4px; color: #333;">{err.message}</pre>
+            </div>
+            """)
+            
+    return HttpResponse("".join(html), content_type="text/html")
