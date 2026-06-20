@@ -49,10 +49,12 @@
             
             <!-- Cash on Delivery (COD) -->
             <label class="relative block rounded-xl border border-gray-200 hover:border-brand-500 p-4 cursor-pointer transition-all">
-              <input type="radio" name="payment_method" value="COD" checked onclick="togglePaymentMock(false)"
+              <input type="radio" name="payment_method" value="COD" checked
                 class="absolute top-4 right-4 text-brand-600 focus:ring-brand-500"/>
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center"><i class="fa-solid fa-hand-holding-dollar text-gray-600 text-lg"></i></div>
+                <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
+                  <i class="fa-solid fa-hand-holding-dollar text-gray-600 text-lg"></i>
+                </div>
                 <div>
                   <span class="font-bold text-gray-800 text-sm">Cash on Delivery (COD)</span>
                   <p class="text-xs text-gray-400 mt-0.5">Pay in cash or UPI when order is delivered.</p>
@@ -60,36 +62,20 @@
               </div>
             </label>
 
-            <!-- Debit/Credit Card Mock -->
+            <!-- Razorpay Payment Option -->
             <label class="relative block rounded-xl border border-gray-200 hover:border-brand-500 p-4 cursor-pointer transition-all">
-              <input type="radio" name="payment_method" value="CARD" onclick="togglePaymentMock(true)"
+              <input type="radio" name="payment_method" value="RAZORPAY"
                 class="absolute top-4 right-4 text-brand-600 focus:ring-brand-500"/>
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center"><i class="fa-solid fa-credit-card text-gray-600 text-lg"></i></div>
+                <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
+                  <i class="fa-solid fa-credit-card text-brand-600 text-lg"></i>
+                </div>
                 <div>
-                  <span class="font-bold text-gray-800 text-sm">Credit / Debit Card</span>
-                  <p class="text-xs text-gray-400 mt-0.5">Simulate 3D secure test card transactions.</p>
+                  <span class="font-bold text-gray-800 text-sm">Pay Online with Razorpay</span>
+                  <p class="text-xs text-gray-400 mt-0.5">Cards, Netbanking, UPI, Wallets, and EMI options.</p>
                 </div>
               </div>
             </label>
-
-            <!-- Card Mock Form Fields (Expanded only when CARD is chosen) -->
-            <div id="card-mock-fields" class="hidden pl-14 space-y-3 pt-2">
-              <div class="grid grid-cols-2 gap-3">
-                <div class="col-span-2">
-                  <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Card Number</label>
-                  <input type="text" placeholder="4242 4242 4242 4242" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50"/>
-                </div>
-                <div>
-                  <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Expiry Date</label>
-                  <input type="text" placeholder="MM/YY" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50"/>
-                </div>
-                <div>
-                  <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">CVV</label>
-                  <input type="password" placeholder="***" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50"/>
-                </div>
-              </div>
-            </div>
 
             <button type="submit" class="w-full py-4 btn-primary rounded-xl font-bold shadow-lg mt-6">
               Place Order &amp; Pay {{ total|inr }}
@@ -146,15 +132,3 @@
 </div>
 {% endblock %}
 
-{% block extra_scripts %}
-<script>
-  function togglePaymentMock(show) {
-    const el = document.getElementById('card-mock-fields');
-    if (show) {
-      el.classList.remove('hidden');
-    } else {
-      el.classList.add('hidden');
-    }
-  }
-</script>
-{% endblock %}

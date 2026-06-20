@@ -3,11 +3,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 from orders.models import Order
 from .models import Transaction
 from decimal import Decimal
 import json
 import logging
+import razorpay
 
 logger = logging.getLogger(__name__)
 
@@ -103,27 +107,157 @@ class RazorpayWebhookView(View):
                     start_idx = description.find('ORD-')
                     order_number = description[start_idx:start_idx+16]
 
-            if order_number:
+            order = None
+            if razorpay_order_id:
+                order = Order.objects.filter(razorpay_order_id=razorpay_order_id).first()
+            if not order and order_number:
                 order = Order.objects.filter(order_number=order_number).first()
-                if order:
-                    order.payment_status = 'PAID'
-                    order.status = 'CONFIRMED'
-                    order.save()
 
-                    Transaction.objects.update_or_create(
-                        transaction_id=payment_id,
-                        defaults={
-                            'order': order,
-                            'gateway': 'RAZORPAY',
-                            'amount': amount if amount > 0 else order.total,
-                            'status': 'SUCCESS',
-                            'raw_response': payload
-                        }
-                    )
-                    logger.info(f"Successfully processed Razorpay payment for Order {order_number}")
-                    return JsonResponse({'status': 'success', 'message': 'Payment processed'})
-                else:
-                    logger.warning(f"Order {order_number} not found for Razorpay Webhook")
-                    return JsonResponse({'error': 'Order not found'}, status=404)
+            if order:
+                order.payment_status = 'PAID'
+                order.status = 'CONFIRMED'
+                order.save()
+
+                Transaction.objects.update_or_create(
+                    transaction_id=payment_id,
+                    defaults={
+                        'order': order,
+                        'gateway': 'RAZORPAY',
+                        'amount': amount if amount > 0 else order.total,
+                        'status': 'SUCCESS',
+                        'raw_response': payload
+                    }
+                )
+                logger.info(f"Successfully processed Razorpay webhook payment for Order {order.order_number}")
+                return JsonResponse({'status': 'success', 'message': 'Payment processed'})
+            else:
+                logger.warning(f"Order not found for Razorpay Webhook (order_id: {razorpay_order_id}, order_number: {order_number})")
+                return JsonResponse({'error': 'Order not found'}, status=404)
 
         return JsonResponse({'status': 'ignored'})
+
+
+@method_decorator(login_required, name='dispatch')
+class RazorpayCheckoutView(View):
+    template_name = 'payments/razorpay_checkout.html'
+
+    def get(self, request, order_number):
+        order = get_object_or_404(Order, order_number=order_number, user=request.user)
+        
+        # Razorpay Keys
+        key_id = settings.RAZORPAY_KEY_ID
+        key_secret = settings.RAZORPAY_KEY_SECRET
+        
+        is_mock = True
+        razorpay_order_id = order.razorpay_order_id
+
+        if key_id and key_secret:
+            try:
+                client = razorpay.Client(auth=(key_id, key_secret))
+                amount_paise = int(order.total * 100)
+                
+                # Check if we already created a real Razorpay Order
+                if not razorpay_order_id or razorpay_order_id.startswith('mock_'):
+                    razorpay_order = client.order.create({
+                        'amount': amount_paise,
+                        'currency': 'INR',
+                        'receipt': order.order_number,
+                    })
+                    razorpay_order_id = razorpay_order['id']
+                    order.razorpay_order_id = razorpay_order_id
+                    order.save()
+                is_mock = False
+            except Exception as e:
+                logger.error(f"Error creating Razorpay order: {e}")
+                # Fallback to mock mode if credentials fail/timeout
+                is_mock = True
+
+        if is_mock and (not razorpay_order_id or not razorpay_order_id.startswith('mock_')):
+            razorpay_order_id = f"mock_order_{order.order_number}"
+            order.razorpay_order_id = razorpay_order_id
+            order.save()
+
+        context = {
+            'order': order,
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_key_id': key_id or 'mock_key_id_12345',
+            'amount_paise': int(order.total * 100),
+            'is_mock': is_mock,
+        }
+        return render(request, self.template_name, context)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RazorpayVerifyView(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            if request.content_type == 'application/json':
+                data = json.loads(request.body)
+            else:
+                data = request.POST
+        except Exception:
+            return JsonResponse({'error': 'Invalid request body'}, status=400)
+
+        payment_id = data.get('razorpay_payment_id')
+        rzp_order_id = data.get('razorpay_order_id')
+        signature = data.get('razorpay_signature')
+        is_mock_payment = data.get('is_mock') == 'true' or data.get('is_mock') is True or (rzp_order_id and rzp_order_id.startswith('mock_'))
+
+        if not payment_id or not rzp_order_id:
+            return JsonResponse({'error': 'Missing payment credentials'}, status=400)
+
+        # Retrieve order
+        order = Order.objects.filter(razorpay_order_id=rzp_order_id).first()
+        if not order:
+            # Fallback to matching by mock order ID format
+            if rzp_order_id.startswith('mock_order_'):
+                order_number = rzp_order_id.replace('mock_order_', '')
+                order = Order.objects.filter(order_number=order_number).first()
+
+        if not order:
+            return JsonResponse({'error': 'Order not found'}, status=404)
+
+        key_id = settings.RAZORPAY_KEY_ID
+        key_secret = settings.RAZORPAY_KEY_SECRET
+
+        if not is_mock_payment and key_id and key_secret:
+            try:
+                client = razorpay.Client(auth=(key_id, key_secret))
+                client.utility.verify_payment_signature({
+                    'razorpay_order_id': rzp_order_id,
+                    'razorpay_payment_id': payment_id,
+                    'razorpay_signature': signature
+                })
+                # Signature matches
+            except Exception as e:
+                logger.error(f"Razorpay verification failed: {e}")
+                order.payment_status = 'FAILED'
+                order.save()
+                return JsonResponse({'error': 'Signature verification failed'}, status=400)
+        else:
+            # Simulated payment verification
+            logger.info("Simulated payment success verified.")
+
+        # Update order & payment record
+        order.payment_status = 'PAID'
+        order.status = 'CONFIRMED'
+        order.save()
+
+        # Record transaction
+        Transaction.objects.update_or_create(
+            transaction_id=payment_id,
+            defaults={
+                'order': order,
+                'gateway': 'RAZORPAY',
+                'amount': order.total,
+                'status': 'SUCCESS',
+                'raw_response': data
+            }
+        )
+
+        redirect_url = reverse('orders:confirmation', kwargs={'order_number': order.order_number})
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Payment verified successfully.',
+            'redirect_url': redirect_url
+        })

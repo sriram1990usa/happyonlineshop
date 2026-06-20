@@ -84,7 +84,7 @@ class CheckoutPaymentView(View):
             user=request.user,
             shipping_address_snapshot=address_snapshot,
             payment_method=payment_method,
-            payment_status='PAID' if payment_method != 'COD' else 'PENDING',
+            payment_status='PENDING',
             subtotal=subtotal,
             discount=discount,
             shipping_charge=shipping,
@@ -116,6 +116,9 @@ class CheckoutPaymentView(View):
         cart.items.all().delete()
         request.session.pop('coupon_id', None)
         request.session.pop('checkout_address_id', None)
+
+        if payment_method == 'RAZORPAY':
+            return redirect('payments:razorpay_checkout', order_number=order.order_number)
 
         messages.success(request, f'Order #{order.order_number} placed successfully!')
         return redirect('orders:confirmation', order_number=order.order_number)

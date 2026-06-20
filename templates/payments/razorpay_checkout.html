@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% load static %}{% load currency_filters %}
+{% block title %}Razorpay Payment Checkout — PremiumShop AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <div class="max-w-3xl mx-auto">
+    
+    <!-- Visual Progress Header -->
+    <div class="flex items-center justify-between max-w-lg mx-auto mb-10">
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-sm">1</div>
+        <span class="text-xs font-semibold text-brand-600 mt-2">Address</span>
+      </div>
+      <div class="h-1 bg-brand-600 flex-1"></div>
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-sm">2</div>
+        <span class="text-xs font-semibold text-brand-600 mt-2">Payment</span>
+      </div>
+      <div class="h-1 bg-brand-600 flex-1"></div>
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-sm animate-pulse">3</div>
+        <span class="text-xs font-semibold text-brand-500 mt-2">Authorization</span>
+      </div>
+    </div>
+
+    <!-- MAIN CARD -->
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-2xl overflow-hidden">
+      <!-- Gradient Header -->
+      <div class="bg-gradient-to-r from-brand-700 to-indigo-800 p-8 text-white text-center relative overflow-hidden">
+        <div class="absolute inset-0 bg-grid-pattern opacity-10"></div>
+        <div class="relative z-10 space-y-2">
+          <span class="px-3 py-1 rounded-full bg-white/10 text-xs font-semibold uppercase tracking-wider text-brand-200">
+            Secure Checkout
+          </span>
+          <h2 class="font-display font-black text-2xl">Complete Your Purchase</h2>
+          <p class="text-white/70 text-sm">Order Number: <strong class="text-white">{{ order.order_number }}</strong></p>
+        </div>
+      </div>
+
+      <!-- Detail list -->
+      <div class="p-8 space-y-8">
+        <!-- Order details summary -->
+        <div class="grid grid-cols-2 gap-6 bg-gray-50 rounded-2xl p-6 border border-gray-100 text-sm">
+          <div>
+            <span class="text-gray-400 block mb-0.5">Amount Payable</span>
+            <span class="text-2xl font-black text-gray-900">{{ order.total|inr }}</span>
+          </div>
+          <div>
+            <span class="text-gray-400 block mb-0.5">Razorpay Order ID</span>
+            <code class="text-xs font-mono font-bold text-brand-700 select-all block mt-1">{{ razorpay_order_id }}</code>
+          </div>
+          <div class="col-span-2 border-t border-gray-200/60 pt-4">
+            <span class="text-gray-400 block mb-1">Shipping To</span>
+            <p class="text-gray-700 font-medium whitespace-pre-line leading-relaxed">{{ order.shipping_address_snapshot }}</p>
+          </div>
+        </div>
+
+        {% if is_mock %}
+        <!-- ================= SIMULATED MOCK TESTING ZONE ================= -->
+        <div class="space-y-6">
+          <div class="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-orange-200 rounded-2xl p-5">
+            <div class="flex gap-3">
+              <i class="fa-solid fa-flask text-orange-600 text-xl mt-0.5"></i>
+              <div>
+                <h4 class="font-bold text-orange-800 text-sm">Razorpay Simulation Mode (Local/Test)</h4>
+                <p class="text-xs text-orange-700/80 mt-1 leading-relaxed">
+                  Real API credentials are not configured or failed to resolve. You can test your webhook handles and status transitions using the simulation controls below.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mock Portal UI -->
+          <div class="border-2 border-dashed border-gray-200 rounded-2xl p-6 bg-gray-50/50 space-y-4">
+            <h3 class="font-display font-bold text-sm text-gray-700 uppercase tracking-wider text-center">Simulated Credit Card / UPI</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Success Simulation -->
+              <button id="btn-simulate-success" onclick="processSimulatedPayment(true)" 
+                class="flex flex-col items-center justify-center p-6 bg-white border border-green-200 hover:border-green-500 rounded-2xl shadow-sm hover:shadow-md transition-all group">
+                <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                  <i class="fa-solid fa-circle-check text-green-600 text-xl"></i>
+                </div>
+                <span class="font-bold text-gray-800 text-sm">Simulate Payment Success</span>
+                <p class="text-xs text-gray-400 text-center mt-1">Triggers verify signature flow and transitions order to Paid.</p>
+              </button>
+
+              <!-- Failure Simulation -->
+              <button id="btn-simulate-failure" onclick="processSimulatedPayment(false)"
+                class="flex flex-col items-center justify-center p-6 bg-white border border-red-200 hover:border-red-500 rounded-2xl shadow-sm hover:shadow-md transition-all group">
+                <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                  <i class="fa-solid fa-circle-xmark text-red-600 text-xl"></i>
+                </div>
+                <span class="font-bold text-gray-800 text-sm">Simulate Payment Failure</span>
+                <p class="text-xs text-gray-400 text-center mt-1">Simulates payment rejection or expired flow.</p>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {% else %}
+        <!-- ================= REAL RAZORPAY ZONE ================= -->
+        <div class="text-center space-y-4 py-4">
+          <div class="flex justify-center">
+            <div class="w-16 h-16 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 text-3xl animate-bounce">
+              💳
+            </div>
+          </div>
+          <p class="text-sm text-gray-500 max-w-sm mx-auto">
+            Click the button below to launch the secure Razorpay Payment Portal to complete your transaction.
+          </p>
+          <button id="rzp-button1" class="px-8 py-4 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl font-bold shadow-lg inline-flex items-center gap-2 hover:scale-[1.02] transition-all">
+            <i class="fa-solid fa-wallet"></i> Pay with Razorpay
+          </button>
+        </div>
+        {% endif %}
+
+        <!-- BACK LINK -->
+        <div class="text-center pt-2">
+          <a href="{% url 'orders:checkout_payment' %}" class="text-xs text-gray-400 hover:text-gray-600 flex items-center justify-center gap-1.5 font-medium transition-colors">
+            <i class="fa-solid fa-arrow-left-long"></i> Change Payment Method
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loader Screen overlay -->
+<div id="payment-loader" class="fixed inset-0 bg-brand-900/40 backdrop-blur-md z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+  <div class="bg-white rounded-3xl p-8 max-w-sm mx-auto text-center space-y-4 shadow-2xl border border-gray-100">
+    <div class="flex justify-center">
+      <div class="w-12 h-12 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
+    </div>
+    <h3 class="font-display font-black text-lg text-gray-900">Verifying Payment...</h3>
+    <p class="text-xs text-gray-400">Please do not refresh the page or close the window while we authorize your transaction.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if not is_mock %}
+<!-- Load Razorpay Checkout SDK -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+  var options = {
+    "key": "{{ razorpay_key_id }}",
+    "amount": "{{ amount_paise }}",
+    "currency": "INR",
+    "name": "PremiumShop AI",
+    "description": "Payment for Order {{ order.order_number }}",
+    "order_id": "{{ razorpay_order_id }}",
+    "handler": function (response){
+      // Show loader
+      showLoader(true);
+
+      // POST credentials to verification view
+      fetch("{% url 'payments:razorpay_verify' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_signature: response.razorpay_signature,
+          is_mock: false
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success' && data.redirect_url) {
+          window.location.href = data.redirect_url;
+        } else {
+          showLoader(false);
+          alert("Payment verification failed: " + (data.error || "Unknown Error"));
+        }
+      })
+      .catch(err => {
+        showLoader(false);
+        console.error(err);
+        alert("An error occurred during verification.");
+      });
+    },
+    "prefill": {
+      "name": "{{ request.user.get_full_name }}",
+      "email": "{{ request.user.email }}"
+    },
+    "theme": {
+      "color": "#4f46e5"
+    }
+  };
+  
+  var rzp1 = new Razorpay(options);
+  
+  // Auto open on page load
+  window.onload = function() {
+    rzp1.open();
+  };
+
+  document.getElementById('rzp-button1').onclick = function(e){
+    rzp1.open();
+    e.preventDefault();
+  }
+</script>
+{% endif %}
+
+<script>
+  function showLoader(show) {
+    const el = document.getElementById('payment-loader');
+    if (show) {
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.remove('opacity-0'), 10);
+    } else {
+      el.classList.add('opacity-0');
+      setTimeout(() => el.classList.add('hidden'), 300);
+    }
+  }
+
+  function processSimulatedPayment(success) {
+    if (!success) {
+      alert("Simulated payment failed. Redirecting to payment page.");
+      window.location.href = "{% url 'orders:checkout_payment' %}";
+      return;
+    }
+
+    showLoader(true);
+
+    // Trigger mock success API call
+    fetch("{% url 'payments:razorpay_verify' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: JSON.stringify({
+        razorpay_payment_id: "mock_pay_" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+        razorpay_order_id: "{{ razorpay_order_id }}",
+        razorpay_signature: "mock_sig_1234567890abcdef",
+        is_mock: true
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'success' && data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else {
+        showLoader(false);
+        alert("Simulated verification failed: " + (data.error || "Unknown Error"));
+      }
+    })
+    .catch(err => {
+      showLoader(false);
+      console.error(err);
+      alert("An error occurred during simulation verification.");
+    });
+  }
+</script>
+{% endblock %}
