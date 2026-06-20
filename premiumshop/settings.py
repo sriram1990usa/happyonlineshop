@@ -78,8 +78,16 @@ WSGI_APPLICATION = 'premiumshop.wsgi.application'
 ASGI_APPLICATION = 'premiumshop.asgi.application'
 
 # Database Setup (PostgreSQL with SQLite fallback)
+import sys
 DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL:
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db_test.sqlite3',
+        }
+    }
+elif DATABASE_URL:
     try:
         url = urllib.parse.urlparse(DATABASE_URL)
         DATABASES = {

@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from orders.models import Order
@@ -8,6 +8,7 @@ import json
 
 User = get_user_model()
 
+@override_settings(RAZORPAY_KEY_ID=None, RAZORPAY_KEY_SECRET=None)
 class RazorpayPaymentsTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
