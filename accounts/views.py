@@ -92,6 +92,9 @@ class AddressListView(View):
             address.user = request.user
             address.save()
             messages.success(request, 'Address added.')
+            next_url = request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
             return redirect('accounts:addresses')
         addresses = request.user.addresses.all()
         return render(request, self.template_name, {'addresses': addresses, 'form': form})
