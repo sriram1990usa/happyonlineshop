@@ -149,3 +149,20 @@ class OrderDetailView(View):
     def get(self, request, order_number):
         order = get_object_or_404(Order, order_number=order_number, user=request.user)
         return render(request, self.template_name, {'order': order})
+
+
+from django.http import HttpResponse
+from .invoice_service import generate_invoice_pdf
+
+@method_decorator(login_required, name='dispatch')
+class OrderInvoiceDownloadView(View):
+    def get(self, request, order_number):
+        order = get_object_or_404(Order, order_number=order_number, user=request.user)
+        try:
+            pdf_data = generate_invoice_pdf(order)
+            response = HttpResponse(pdf_data, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="Invoice-{order.order_number}.pdf"'
+            return response
+        except Exception as e:
+            messages.error(request, f"Error generating PDF invoice: {e}")
+            return redirect('orders:detail', order_number=order.order_number)

@@ -20,6 +20,19 @@ class RegisterView(View):
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            
+            # Send welcome notification/email
+            try:
+                from notifications.services import NotificationService
+                NotificationService.send_notification(
+                    user=user,
+                    notification_type='OFFER',
+                    title="Welcome to PremiumShop AI! ⚡",
+                    message=f"Hi {user.first_name or 'there'},\n\nThank you for registering at PremiumShop AI! Your account is active and you are ready to explore and shop premium items.\n\nEnjoy your premium shopping experience!\n\nThe PremiumShop AI Team"
+                )
+            except Exception:
+                pass
+
             login(request, user)
             messages.success(request, f'Welcome to PremiumShop AI, {user.email}!')
             return redirect('core:home')

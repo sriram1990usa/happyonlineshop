@@ -52,3 +52,43 @@ class NotificationService:
             # You can easily swap this logic with a real Twilio or SMS gateway client here.
             
         return notification
+
+    @staticmethod
+    def send_html_email_with_attachment(user, subject, text_content, html_content, attachment_data=None, attachment_name=None, attachment_content_type=None, notification_type='ORDER', link=None):
+        """
+        Sends a rich HTML email to the user with an optional file attachment (like invoice PDF).
+        Also creates an in-app Notification.
+        """
+        # 1. Create in-app notification
+        notification = Notification.objects.create(
+            user=user,
+            notification_type=notification_type,
+            title=subject,
+            message=text_content,
+            link=link
+        )
+
+        # 2. Send email
+        if getattr(user, 'email', None):
+            from django.core.mail import EmailMultiAlternatives
+            try:
+                email = EmailMultiAlternatives(
+                    subject=subject,
+                    body=text_content,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[user.email]
+                )
+                if html_content:
+                    email.attach_alternative(html_content, "text/html")
+                
+                if attachment_data and attachment_name:
+                    content_type = attachment_content_type or 'application/pdf'
+                    email.attach(attachment_name, attachment_data, content_type)
+                
+                email.send(fail_silently=False)
+                logger.info(f"Email sent successfully to {user.email} with subject: {subject}")
+            except Exception as e:
+                logger.error(f"Failed to send email to {user.email}: {e}")
+                
+        return notification
+

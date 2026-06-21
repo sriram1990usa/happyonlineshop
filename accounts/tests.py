@@ -85,3 +85,36 @@ class AccountsTestCase(TestCase):
         delete_response = self.client.post(delete_url)
         self.assertEqual(delete_response.status_code, 302)
         self.assertFalse(Address.objects.filter(user=self.user, city='Bangalore').exists())
+
+    def test_user_registration_welcome_email(self):
+        from django.core import mail
+        
+        # Clear outbox
+        mail.outbox = []
+        
+        # Post registration data
+        response = self.client.post(self.register_url, self.user_data)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify user welcome email is sent
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Welcome to PremiumShop AI", mail.outbox[0].subject)
+        self.assertEqual(mail.outbox[0].to, ['testuser@example.com'])
+
+    def test_password_reset_flow_emails(self):
+        from django.core import mail
+        
+        # Clear outbox
+        mail.outbox = []
+        
+        # Post to password reset view
+        reset_url = reverse('accounts:password_reset')
+        response = self.client.post(reset_url, {'email': 'existing@example.com'})
+        
+        # Should redirect to password reset done page
+        self.assertEqual(response.status_code, 302)
+        
+        # Check that email was sent
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Password reset", mail.outbox[0].subject)
+        self.assertEqual(mail.outbox[0].to, ['existing@example.com'])

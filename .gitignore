@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .env
 /IMAGES/
+Z-NOTES/
 media/
 staticfiles/
 db.sqlite3

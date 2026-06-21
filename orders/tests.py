@@ -98,3 +98,34 @@ class OrdersTestCase(TestCase):
 
         # Verify cart cleared
         self.assertEqual(cart.items.count(), 0)
+
+    def test_generate_and_download_invoice(self):
+        # Create an order
+        order = Order.objects.create(
+            user=self.user,
+            shipping_address_snapshot="Home Recipient\n100 Park Ave\nBangalore, Karnataka - 560001",
+            payment_method='COD',
+            payment_status='PAID',
+            subtotal=Decimal('500.00'),
+            total=Decimal('500.00')
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=self.product,
+            quantity=1,
+            price=Decimal('500.00')
+        )
+        
+        # Test PDF generation service
+        from .invoice_service import generate_invoice_pdf
+        pdf_data = generate_invoice_pdf(order)
+        self.assertIsNotNone(pdf_data)
+        self.assertTrue(len(pdf_data) > 0)
+        
+        # Log in and test invoice download view
+        self.client.login(email='orderuser@example.com', password='Password123!')
+        url = reverse('orders:order_invoice', kwargs={'order_number': order.order_number})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertIn(f'attachment; filename="Invoice-{order.order_number}.pdf"', response['Content-Disposition'])

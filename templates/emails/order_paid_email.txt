@@ -1,0 +1,17 @@
+Hi {{ user.first_name|default:"there" }},
+
+Thank you for your order! We have received your payment of ₹{{ order.total }} for order #{{ order.order_number }}. Your order is now confirmed and is being prepared for shipment.
+
+Order Summary:
+- Order Number: #{{ order.order_number }}
+- Total Amount: ₹{{ order.total }}
+- Payment Status: Paid
+- Payment Method: {{ order.get_payment_method_display }}
+
+Your official Tax Invoice is attached to this email as a PDF.
+
+You can view your order details here:
+{{ site_url }}{% url 'orders:detail' order.order_number %}
+
+Best regards,
+The PremiumShop AI Team

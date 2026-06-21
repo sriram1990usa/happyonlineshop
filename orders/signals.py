@@ -1,13 +1,69 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
+from django.template.loader import render_to_string
+from django.conf import settings
 from .models import Order
+from .invoice_service import generate_invoice_pdf
 from notifications.services import NotificationService
+
+@receiver(pre_save, sender=Order)
+def order_pre_save_receiver(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            original = Order.objects.get(pk=instance.pk)
+            instance._original_payment_status = original.payment_status
+        except Order.DoesNotExist:
+            instance._original_payment_status = None
+    else:
+        instance._original_payment_status = None
 
 @receiver(post_save, sender=Order)
 def order_notification_receiver(sender, instance, created, **kwargs):
     # If there is no user associated, skip (for anonymous/guest checkout if any)
     if not instance.user:
         return
+
+    # Check if payment status just changed to PAID (or created as PAID)
+    original_payment_status = getattr(instance, '_original_payment_status', None)
+    payment_transitioned_to_paid = False
+
+    if instance.payment_status == 'PAID':
+        if created or (original_payment_status != 'PAID'):
+            payment_transitioned_to_paid = True
+
+    if payment_transitioned_to_paid:
+        try:
+            # Generate invoice PDF
+            pdf_data = generate_invoice_pdf(instance)
+            
+            # Prepare context for rendering
+            site_url = getattr(settings, 'SITE_URL', 'https://happyonlineshop.vercel.app')
+            context = {
+                'user': instance.user,
+                'order': instance,
+                'site_url': site_url,
+            }
+            
+            # Render HTML and Text content
+            html_content = render_to_string('emails/order_paid_email.html', context)
+            text_content = render_to_string('emails/order_paid_email.txt', context)
+            
+            # Send HTML email with attachment
+            NotificationService.send_html_email_with_attachment(
+                user=instance.user,
+                subject=f"Payment Received & Order Confirmed #{instance.order_number}",
+                text_content=text_content,
+                html_content=html_content,
+                attachment_data=pdf_data,
+                attachment_name=f"Invoice-{instance.order_number}.pdf",
+                attachment_content_type='application/pdf',
+                notification_type='ORDER',
+                link=f"/orders/detail/{instance.order_number}/"
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error sending paid order notification for order {instance.order_number}: {e}")
 
     if created:
         NotificationService.send_notification(
