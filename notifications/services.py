@@ -35,10 +35,10 @@ class NotificationService:
                     message=message,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email],
-                    fail_silently=True
+                    fail_silently=False
                 )
             except Exception as e:
-                logger.error(f"Failed to send console email: {e}")
+                logger.error(f"Failed to send email: {e}")
 
         # 3. Simulate SMS dispatch
         profile = getattr(user, 'profile', None)
