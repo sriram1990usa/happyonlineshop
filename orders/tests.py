@@ -129,3 +129,73 @@ class OrdersTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/pdf')
         self.assertIn(f'attachment; filename="Invoice-{order.order_number}.pdf"', response['Content-Disposition'])
+
+    def test_order_tracking_updates(self):
+        # Create an order
+        order = Order.objects.create(
+            user=self.user,
+            shipping_address_snapshot="Home Recipient\n100 Park Ave\nBangalore, Karnataka - 560001",
+            payment_method='COD',
+            payment_status='PAID',
+            subtotal=Decimal('500.00'),
+            total=Decimal('500.00'),
+            status='CONFIRMED'
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=self.product,
+            quantity=1,
+            price=Decimal('500.00')
+        )
+
+        # Make staff user for dashboard access
+        self.staff_user = User.objects.create_superuser(
+            email='adminuser@example.com',
+            first_name='Admin',
+            last_name='User',
+            password='AdminPassword123!'
+        )
+        self.client.login(email='adminuser@example.com', password='AdminPassword123!')
+
+        # Post update to SHIPPED
+        dashboard_url = reverse('dashboard:orders')
+        response = self.client.post(dashboard_url, {
+            'order_id': order.id,
+            'status': 'SHIPPED',
+            'courier_name': 'BlueDart Express',
+            'tracking_number': 'BD871625',
+            'tracking_url': 'https://bluedart.com/track/BD871625'
+        })
+        self.assertEqual(response.status_code, 302) # redirects back to orders list
+        
+        # Verify database fields updated
+        order.refresh_from_db()
+        self.assertEqual(order.status, 'SHIPPED')
+        self.assertEqual(order.courier_name, 'BlueDart Express')
+        self.assertEqual(order.tracking_number, 'BD871625')
+        self.assertEqual(order.tracking_url, 'https://bluedart.com/track/BD871625')
+        self.assertIsNotNone(order.shipped_at)
+
+        # Post update to DELIVERED
+        response = self.client.post(dashboard_url, {
+            'order_id': order.id,
+            'status': 'DELIVERED',
+            'delivery_proof_notes': 'Delivered to security gate, signed by officer Raj'
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify database fields updated
+        order.refresh_from_db()
+        self.assertEqual(order.status, 'DELIVERED')
+        self.assertEqual(order.delivery_proof_notes, 'Delivered to security gate, signed by officer Raj')
+        self.assertIsNotNone(order.delivered_at)
+
+        # Log in as user and fetch details page to verify rendering
+        self.client.login(email='orderuser@example.com', password='Password123!')
+        detail_url = reverse('orders:detail', kwargs={'order_number': order.order_number})
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Shipment & Delivery Details')
+        self.assertContains(response, 'BlueDart Express')
+        self.assertContains(response, 'BD871625')
+        self.assertContains(response, 'Delivered to security gate, signed by officer Raj')

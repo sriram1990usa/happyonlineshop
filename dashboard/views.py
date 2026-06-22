@@ -70,6 +70,20 @@ class DashboardOrdersView(View):
         order_id = request.POST.get('order_id')
         new_status = request.POST.get('status')
         order = Order.objects.get(pk=order_id)
+        
+        if new_status == 'SHIPPED':
+            order.courier_name = request.POST.get('courier_name', '').strip() or None
+            order.tracking_number = request.POST.get('tracking_number', '').strip() or None
+            order.tracking_url = request.POST.get('tracking_url', '').strip() or None
+            if not order.shipped_at:
+                order.shipped_at = timezone.now()
+        elif new_status == 'DELIVERED':
+            order.delivery_proof_notes = request.POST.get('delivery_proof_notes', '').strip() or None
+            if 'delivery_proof_image' in request.FILES:
+                order.delivery_proof_image = request.FILES['delivery_proof_image']
+            if not order.delivered_at:
+                order.delivered_at = timezone.now()
+
         order.status = new_status
         order.save()
         return redirect('dashboard:orders')

@@ -61,19 +61,68 @@
                   {% else %}bg-blue-100 text-blue-700{% endif %}">
                   {{ order.status }}
                 </span>
+                {% if order.status == 'SHIPPED' %}
+                <div class="mt-1.5 text-xs text-gray-500 space-y-0.5 font-sans">
+                  <p><strong>Courier:</strong> {{ order.courier_name|default:"Not set" }}</p>
+                  <p><strong>AWB:</strong> {{ order.tracking_number|default:"Not set" }}</p>
+                  {% if order.tracking_url %}
+                  <p><a href="{{ order.tracking_url }}" target="_blank" class="text-brand-600 hover:underline inline-flex items-center gap-1 font-semibold"><i class="fa-solid fa-up-right-from-square text-[10px]"></i> Track Packet</a></p>
+                  {% endif %}
+                </div>
+                {% elif order.status == 'DELIVERED' %}
+                <div class="mt-1.5 text-xs text-gray-500 space-y-0.5 font-sans">
+                  <p class="text-green-700 font-semibold">Delivered at: {{ order.delivered_at|date:"d-M-Y H:i" }}</p>
+                  {% if order.delivery_proof_notes %}
+                  <p><strong>Notes:</strong> {{ order.delivery_proof_notes }}</p>
+                  {% endif %}
+                  {% if order.delivery_proof_image %}
+                  <p><a href="{{ order.delivery_proof_image.url }}" target="_blank" class="text-brand-600 hover:underline inline-flex items-center gap-1 font-semibold"><i class="fa-solid fa-image text-[10px]"></i> View Proof Photo</a></p>
+                  {% endif %}
+                </div>
+                {% endif %}
               </td>
               <td class="px-6 py-4">
-                <form method="POST" class="flex gap-2">
+                <form method="POST" enctype="multipart/form-data" class="flex flex-col gap-2 min-w-[200px]">
                   {% csrf_token %}
                   <input type="hidden" name="order_id" value="{{ order.id }}"/>
-                  <select name="status" class="px-2 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-brand-500 bg-white">
-                    <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
-                    <option value="CONFIRMED" {% if order.status == 'CONFIRMED' %}selected{% endif %}>Confirmed</option>
-                    <option value="SHIPPED" {% if order.status == 'SHIPPED' %}selected{% endif %}>Shipped</option>
-                    <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>Delivered</option>
-                    <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
-                  </select>
-                  <button type="submit" class="px-3 py-1.5 btn-primary rounded-lg text-xs font-bold transition-all">Update</button>
+                  <div class="flex gap-2">
+                    <select name="status" onchange="toggleStatusInputs(this, '{{ order.id }}')" class="px-2 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-brand-500 bg-white flex-1">
+                      <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                      <option value="CONFIRMED" {% if order.status == 'CONFIRMED' %}selected{% endif %}>Confirmed</option>
+                      <option value="SHIPPED" {% if order.status == 'SHIPPED' %}selected{% endif %}>Shipped</option>
+                      <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>Delivered</option>
+                      <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                    <button type="submit" class="px-2.5 py-1.5 btn-primary rounded-lg text-xs font-bold transition-all">Update</button>
+                  </div>
+                  
+                  <!-- Dynamic Shipped Inputs -->
+                  <div id="shipped-inputs-{{ order.id }}" class="hidden space-y-1.5 p-2 bg-gray-50 border border-gray-100 rounded-xl text-[11px] text-gray-600">
+                    <div>
+                      <span class="block font-bold">Courier Name:</span>
+                      <input type="text" name="courier_name" value="{{ order.courier_name|default:'' }}" class="w-full px-2 py-1 border border-gray-200 rounded focus:outline-none focus:border-brand-500 bg-white font-sans" placeholder="e.g. BlueDart">
+                    </div>
+                    <div>
+                      <span class="block font-bold">AWB / Tracking Number:</span>
+                      <input type="text" name="tracking_number" value="{{ order.tracking_number|default:'' }}" class="w-full px-2 py-1 border border-gray-200 rounded focus:outline-none focus:border-brand-500 bg-white font-sans" placeholder="e.g. 12345678">
+                    </div>
+                    <div>
+                      <span class="block font-bold">Tracking URL:</span>
+                      <input type="url" name="tracking_url" value="{{ order.tracking_url|default:'' }}" class="w-full px-2 py-1 border border-gray-200 rounded focus:outline-none focus:border-brand-500 bg-white font-sans" placeholder="https://...">
+                    </div>
+                  </div>
+
+                  <!-- Dynamic Delivered Inputs -->
+                  <div id="delivered-inputs-{{ order.id }}" class="hidden space-y-1.5 p-2 bg-gray-50 border border-gray-100 rounded-xl text-[11px] text-gray-600">
+                    <div>
+                      <span class="block font-bold">Delivery Proof Notes:</span>
+                      <textarea name="delivery_proof_notes" rows="2" class="w-full px-2 py-1 border border-gray-200 rounded focus:outline-none focus:border-brand-500 bg-white font-sans" placeholder="Delivered to reception/security.">{{ order.delivery_proof_notes|default:'' }}</textarea>
+                    </div>
+                    <div>
+                      <span class="block font-bold">Proof Photo:</span>
+                      <input type="file" name="delivery_proof_image" class="w-full text-[10px] mt-0.5">
+                    </div>
+                  </div>
                 </form>
               </td>
             </tr>
@@ -88,4 +137,29 @@
     </div>
   </div>
 </div>
+
+<script>
+function toggleStatusInputs(selectElem, orderId) {
+    const shippedDiv = document.getElementById('shipped-inputs-' + orderId);
+    const deliveredDiv = document.getElementById('delivered-inputs-' + orderId);
+    
+    if (shippedDiv) shippedDiv.classList.add('hidden');
+    if (deliveredDiv) deliveredDiv.classList.add('hidden');
+    
+    if (selectElem.value === 'SHIPPED') {
+        if (shippedDiv) shippedDiv.classList.remove('hidden');
+    } else if (selectElem.value === 'DELIVERED') {
+        if (deliveredDiv) deliveredDiv.classList.remove('hidden');
+    }
+}
+
+// Run initially to show fields if their current DB value matches
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('select[name="status"]').forEach(select => {
+        const form = select.closest('form');
+        const orderId = form.querySelector('input[name="order_id"]').value;
+        toggleStatusInputs(select, orderId);
+    });
+});
+</script>
 {% endblock %}

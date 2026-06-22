@@ -45,6 +45,12 @@ class Order(models.Model):
     
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)
     tracking_number = models.CharField(max_length=100, blank=True, null=True)
+    courier_name = models.CharField(max_length=100, blank=True, null=True)
+    tracking_url = models.URLField(max_length=500, blank=True, null=True)
+    delivery_proof_image = models.ImageField(upload_to='delivery_proofs/', blank=True, null=True)
+    delivery_proof_notes = models.TextField(blank=True, null=True)
+    shipped_at = models.DateTimeField(blank=True, null=True)
+    delivered_at = models.DateTimeField(blank=True, null=True)
     razorpay_order_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)

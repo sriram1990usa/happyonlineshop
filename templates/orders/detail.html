@@ -74,6 +74,107 @@
       </div>
     </div>
 
+    {% if order.status == 'SHIPPED' or order.status == 'DELIVERED' or order.status == 'OUT_FOR_DELIVERY' %}
+    <!-- Shipment & Tracking Details Card -->
+    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-6">
+      <div class="flex items-center gap-3 border-b border-gray-100 pb-4">
+        <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600">
+          <i class="fa-solid fa-truck text-lg"></i>
+        </div>
+        <div>
+          <h2 class="font-display font-bold text-lg text-gray-900">Shipment & Delivery Details</h2>
+          <p class="text-xs text-gray-400">Real-time status updates from the courier partner</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Shipment Info -->
+        <div class="space-y-4">
+          <div>
+            <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Courier Partner</span>
+            <p class="font-semibold text-sm text-gray-800">{{ order.courier_name|default:"Pending Shipment Allocation" }}</p>
+          </div>
+          <div>
+            <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">AWB / Tracking Number</span>
+            {% if order.tracking_number %}
+            <div class="flex items-center gap-2 mt-1">
+              <code id="awb-code" class="font-mono text-xs bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-lg text-gray-700 font-bold">{{ order.tracking_number }}</code>
+              <button onclick="copyToClipboard('{{ order.tracking_number }}')" class="text-xs text-brand-600 hover:text-brand-700 font-semibold flex items-center gap-1">
+                <i class="fa-regular fa-copy"></i> Copy
+              </button>
+            </div>
+            {% else %}
+            <p class="font-semibold text-sm text-gray-800">Pending</p>
+            {% endif %}
+          </div>
+          {% if order.shipped_at %}
+          <div>
+            <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Shipped On</span>
+            <p class="font-semibold text-sm text-gray-700">{{ order.shipped_at|date:"M d, Y, h:i A" }}</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Action or Proof of Delivery -->
+        <div class="flex flex-col justify-center border-t md:border-t-0 md:border-l border-gray-100 pt-6 md:pt-0 md:pl-6 space-y-4">
+          {% if order.status == 'DELIVERED' %}
+            <div>
+              <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block mb-1">Status</span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700">
+                <i class="fa-solid fa-circle-check text-[10px]"></i> Delivered successfully
+              </span>
+            </div>
+            {% if order.delivered_at %}
+            <div>
+              <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Delivered On</span>
+              <p class="font-semibold text-sm text-gray-700">{{ order.delivered_at|date:"M d, Y, h:i A" }}</p>
+            </div>
+            {% endif %}
+            {% if order.delivery_proof_notes %}
+            <div>
+              <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Delivery Remarks / Proof Notes</span>
+              <p class="text-sm text-gray-600 leading-relaxed italic bg-gray-50 p-3 border border-gray-100 rounded-xl mt-1">"{{ order.delivery_proof_notes }}"</p>
+            </div>
+            {% endif %}
+            {% if order.delivery_proof_image %}
+            <div>
+              <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block mb-1.5">Proof of Delivery Photo</span>
+              <a href="{{ order.delivery_proof_image.url }}" target="_blank" class="group relative block w-32 h-20 rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <img src="{{ order.delivery_proof_image.url }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Proof of Delivery"/>
+                <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <i class="fa-solid fa-magnifying-glass-plus text-white text-sm"></i>
+                </div>
+              </a>
+            </div>
+            {% endif %}
+          {% else %}
+            <div>
+              <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block mb-2">Track Packet</span>
+              {% if order.tracking_url %}
+              <a href="{{ order.tracking_url }}" target="_blank" class="inline-flex items-center justify-center gap-2 py-3 px-6 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm rounded-2xl transition-all shadow-sm shadow-brand-100 hover:shadow">
+                <i class="fa-solid fa-up-right-from-square"></i>
+                Track Package on Courier Website
+              </a>
+              {% else %}
+              <span class="text-xs text-gray-400 italic">Tracking link will be active once assigned.</span>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <script>
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Tracking number copied to clipboard!');
+        }).catch(err => {
+            console.error('Could not copy text: ', err);
+        });
+    }
+    </script>
+
     <!-- Items and Summary -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
       <!-- Items column -->
