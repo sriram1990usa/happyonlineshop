@@ -62,6 +62,7 @@ class LoginView(View):
                 messages.success(request, 'Welcome back!')
                 return redirect(next_url)
             else:
+                form.add_error(None, 'Invalid email or password.')
                 messages.error(request, 'Invalid email or password.')
         return render(request, self.template_name, {'form': form})
 

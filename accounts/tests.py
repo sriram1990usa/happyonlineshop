@@ -118,3 +118,12 @@ class AccountsTestCase(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("Password reset", mail.outbox[0].subject)
         self.assertEqual(mail.outbox[0].to, ['existing@example.com'])
+
+    def test_login_invalid_password_displays_error(self):
+        login_data = {
+            'email': 'existing@example.com',
+            'password': 'WrongPassword123!'
+        }
+        response = self.client.post(self.login_url, login_data)
+        self.assertEqual(response.status_code, 200)  # Renders form again
+        self.assertContains(response, 'Invalid email or password.')
