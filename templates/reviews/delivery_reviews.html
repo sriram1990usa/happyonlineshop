@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Delivery Reviews — PremiumShop AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <div class="max-w-4xl mx-auto space-y-8">
+    <div class="text-center space-y-2">
+      <h1 class="font-display font-black text-3xl sm:text-4xl text-gray-900">Delivery Performance & Reviews</h1>
+      <p class="text-sm text-gray-500 max-w-xl mx-auto">See what our customers say about our packaging, transit speed, and delivery experiences.</p>
+    </div>
+
+    <!-- Rating Summary and Distribution Widget -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm items-center">
+      <div class="text-center space-y-1">
+        <span class="text-xs text-gray-400 font-bold uppercase tracking-wider block">Average Rating</span>
+        <div class="text-5xl font-black text-gray-950 font-display">{{ avg_rating|floatformat:1 }}</div>
+        <div class="flex gap-0.5 justify-center text-yellow-400 text-sm">
+          {% for i in "12345" %}
+          <i class="fa-star {% if forloop.counter <= avg_rating %}fa-solid star-filled{% else %}fa-regular text-gray-300{% endif %}"></i>
+          {% endfor %}
+        </div>
+        <span class="text-xs text-gray-400 font-medium block">Based on {{ total_count }} review{{ total_count|pluralize }}</span>
+      </div>
+
+      <div class="md:col-span-2 space-y-2.5 md:border-l md:border-gray-100 md:pl-8">
+        {% for star, data in distribution.items %}
+        <div class="flex items-center gap-3 text-xs font-semibold text-gray-600">
+          <span class="w-8 text-right">{{ star }} ★</span>
+          <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full bg-yellow-400 rounded-full transition-all duration-500" style="width: {{ data.percentage }}%"></div>
+          </div>
+          <span class="w-12 text-right text-gray-400 font-medium">{{ data.count }} ({{ data.percentage }}%)</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Delivery Reviews list -->
+    <div class="space-y-4">
+      <h3 class="font-display font-bold text-lg text-gray-900 border-b border-gray-100 pb-3">Latest Reviews</h3>
+
+      {% if reviews %}
+        <div class="divide-y divide-gray-100 space-y-4">
+          {% for review in reviews %}
+          <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-3 hover:shadow transition-shadow">
+            <div class="flex justify-between items-start">
+              <div>
+                <h4 class="font-bold text-gray-800 text-sm">{{ review.user.first_name }} {{ review.user.last_name|slice:":1" }}.</h4>
+                <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block mt-0.5">Order Verified Purchaser</span>
+              </div>
+              <div class="text-right space-y-1">
+                <div class="flex gap-0.5 justify-end text-yellow-400">
+                  {% for i in "12345" %}
+                  <i class="fa-star {% if forloop.counter <= review.rating %}fa-solid star-filled{% else %}fa-regular text-gray-200{% endif %} text-xs"></i>
+                  {% endfor %}
+                </div>
+                <span class="text-[10px] text-gray-400 font-medium block">{{ review.created_at|date:"M d, Y" }}</span>
+              </div>
+            </div>
+
+            <p class="text-sm text-gray-600 leading-relaxed font-medium">"{{ review.body }}"</p>
+
+            <!-- Admin Reply nested -->
+            {% if review.admin_reply %}
+            <div class="bg-brand-50/40 rounded-2xl p-4 border border-brand-100/40 ml-4 space-y-1.5 animate-fade-in">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-brand-700 flex items-center gap-1.5">
+                  <i class="fa-solid fa-user-tie text-xs"></i> Admin Reply ({{ review.admin_reply.admin.first_name }})
+                </span>
+                <span class="text-[10px] text-gray-400 font-medium">{{ review.admin_reply.created_at|date:"M d, Y, h:i A" }}</span>
+              </div>
+              <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">"{{ review.admin_reply.body }}"</p>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="flex justify-center gap-2 mt-8">
+          {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors">← Previous</a>
+          {% endif %}
+          <span class="px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold">{{ page_obj.number }} of {{ paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors">Next →</a>
+          {% endif %}
+        </div>
+        {% endif %}
+      {% else %}
+        <div class="text-center py-12 bg-white rounded-3xl border border-gray-100 shadow-sm">
+          <span class="text-5xl block mb-2">⭐</span>
+          <p class="text-sm font-semibold text-gray-500 italic">No delivery reviews have been posted yet.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

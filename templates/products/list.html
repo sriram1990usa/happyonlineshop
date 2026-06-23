@@ -140,8 +140,13 @@
             <a href="{% url 'products:detail' product.slug %}">
               <h3 class="text-sm font-semibold text-gray-800 leading-tight line-clamp-2 hover:text-brand-600 transition-colors">{{ product.name }}</h3>
             </a>
-            <div class="flex items-center gap-1">
-              {% for i in "12345" %}<i class="fa-star fa-solid star-filled text-xs opacity-{{ forloop.counter|mul:20 }}"></i>{% endfor %}
+            <div class="flex items-center gap-1.5 py-0.5">
+              <div class="flex gap-0.5 text-yellow-400">
+                {% for i in "12345" %}
+                <i class="fa-star {% if forloop.counter <= product.average_rating %}fa-solid star-filled{% else %}fa-regular text-gray-200{% endif %} text-[11px]"></i>
+                {% endfor %}
+              </div>
+              <span class="text-xs text-gray-400 font-medium">({{ product.review_count }})</span>
             </div>
             <div class="flex items-center gap-2">
               {% if product.discount_price %}

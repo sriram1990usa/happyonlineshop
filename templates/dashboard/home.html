@@ -60,6 +60,46 @@
         </div>
       </div>
     </div>
+    
+    <!-- Reviews Metrics Row -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <!-- Avg Delivery Rating -->
+      <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-yellow-50 text-yellow-500 flex items-center justify-center text-xl flex-shrink-0">
+          <i class="fa-solid fa-star"></i>
+        </div>
+        <div>
+          <span class="text-xs text-gray-400 font-semibold block">Avg Delivery Rating</span>
+          <span class="text-xl font-bold text-gray-800">{{ avg_delivery_rating|floatformat:2 }} ★</span>
+        </div>
+      </div>
+      <!-- Pending Moderation -->
+      <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center text-xl flex-shrink-0">
+          <i class="fa-solid fa-hourglass-half"></i>
+        </div>
+        <div>
+          <span class="text-xs text-gray-400 font-semibold block">Pending Moderation</span>
+          <div class="flex items-baseline gap-2">
+            <span class="text-xl font-bold text-gray-800">{{ pending_reviews_count }}</span>
+            <a href="/admin/reviews/productreview/" target="_blank" class="text-[10px] text-brand-600 font-bold hover:underline">Moderate in Admin</a>
+          </div>
+        </div>
+      </div>
+      <!-- Flagged Reports -->
+      <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-red-50 text-red-500 flex items-center justify-center text-xl flex-shrink-0">
+          <i class="fa-solid fa-flag"></i>
+        </div>
+        <div>
+          <span class="text-xs text-gray-400 font-semibold block">Flagged Review Reports</span>
+          <div class="flex items-baseline gap-2">
+            <span class="text-xl font-bold text-gray-800">{{ reported_reviews_count }}</span>
+            <a href="/admin/reviews/reviewreport/" target="_blank" class="text-[10px] text-brand-600 font-bold hover:underline">View Reports</a>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Chart & Low Stock -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">

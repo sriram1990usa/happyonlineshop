@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model
 from accounts.models import Profile, Address
 from products.models import Category, Brand, Product, ProductVariant, ProductImage
 from cart.models import Coupon
-from reviews.models import Review
+from reviews.models import ProductReview
 from notifications.models import Notification
 
 User = get_user_model()
@@ -22,7 +22,7 @@ def seed():
     # 1. Clean existing data
     print("Cleaning existing tables...")
     Notification.objects.all().delete()
-    Review.objects.all().delete()
+    ProductReview.objects.all().delete()
     Coupon.objects.all().delete()
     ProductVariant.objects.all().delete()
     ProductImage.objects.all().delete()
@@ -198,43 +198,43 @@ def seed():
 
     # 8. Create Reviews
     print("Writing verified customer reviews...")
-    Review.objects.create(
+    ProductReview.objects.create(
         product=iphone,
         user=customer_user,
         rating=5,
         title='Absolutely stunning phone',
         body='The titanium frame feels incredibly light and premium. The zoom lens is mind-blowing. Price is high, but totally worth it!',
         is_verified_purchase=True,
-        is_approved=True
+        status='APPROVED'
     )
-    Review.objects.create(
+    ProductReview.objects.create(
         product=iphone,
         user=reviewer_user,
         rating=4,
         title='Excellent performance, battery could be better',
         body='Super fast processor. High refresh display is beautiful. Battery life is good, but under heavy use it drops faster than expected.',
         is_verified_purchase=True,
-        is_approved=True
+        status='APPROVED'
     )
 
-    Review.objects.create(
+    ProductReview.objects.create(
         product=sony_headphones,
         user=customer_user,
         rating=5,
         title='Best ANC on the market!',
         body='Noise cancellation is unbelievable. Very comfortable to wear for hours, sound quality is crisp and bass is perfectly balanced.',
         is_verified_purchase=True,
-        is_approved=True
+        status='APPROVED'
     )
 
-    Review.objects.create(
+    ProductReview.objects.create(
         product=nike_shoes,
         user=reviewer_user,
         rating=4,
         title='Very comfortable everyday sneakers',
         body='Good cushioning and breathable fit. Runs slightly narrow, so buy one size larger if you have wide feet.',
         is_verified_purchase=True,
-        is_approved=True
+        status='APPROVED'
     )
 
     # 9. Create Notifications

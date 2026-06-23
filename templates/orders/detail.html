@@ -124,6 +124,43 @@
                 <i class="fa-solid fa-circle-check text-[10px]"></i> Delivered successfully
               </span>
             </div>
+            
+            {% if order.delivery_review %}
+              <div class="bg-gray-50 border border-gray-150 rounded-2xl p-4 space-y-2 mt-4 max-w-sm">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <i class="fa-regular fa-star text-brand-500"></i> Your Delivery Review
+                  </span>
+                  <div class="flex gap-0.5 text-yellow-400">
+                    {% for i in "12345" %}
+                    <i class="fa-star {% if forloop.counter <= order.delivery_review.rating %}fa-solid star-filled{% else %}fa-regular text-gray-200{% endif %} text-[11px]"></i>
+                    {% endfor %}
+                  </div>
+                </div>
+                <p class="text-xs text-gray-600 leading-relaxed font-medium italic">"{{ order.delivery_review.body }}"</p>
+                
+                {% if order.delivery_review.admin_reply %}
+                  <div class="bg-brand-50/50 rounded-xl p-3 border border-brand-100/40 space-y-1 mt-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-[10px] font-bold text-brand-700"><i class="fa-solid fa-user-tie"></i> Admin Reply</span>
+                      <span class="text-[9px] text-gray-400">{{ order.delivery_review.admin_reply.created_at|date:"M d, Y" }}</span>
+                    </div>
+                    <p class="text-[11px] text-gray-600 leading-relaxed">"{{ order.delivery_review.admin_reply.body }}"</p>
+                  </div>
+                {% endif %}
+                
+                <div class="flex gap-3 justify-end text-[11px] font-bold pt-1 border-t border-gray-100/50">
+                  <a href="{% url 'reviews:edit_delivery_review' order.delivery_review.id %}" class="text-brand-600 hover:underline"><i class="fa-regular fa-pen-to-square"></i> Edit</a>
+                  <a href="{% url 'reviews:delete_delivery_review' order.delivery_review.id %}" class="text-red-600 hover:underline"><i class="fa-regular fa-trash-can"></i> Delete</a>
+                </div>
+              </div>
+            {% else %}
+              <div class="mt-4">
+                <a href="{% url 'reviews:add_delivery_review' order.order_number %}" class="inline-flex items-center gap-2 py-2 px-4 border border-brand-200 rounded-xl text-brand-600 bg-brand-50 hover:bg-brand-100 font-bold text-xs transition-colors shadow-sm">
+                  <i class="fa-regular fa-star"></i> Write Delivery Review
+                </a>
+              </div>
+            {% endif %}
             {% if order.delivered_at %}
             <div>
               <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider block">Delivered On</span>

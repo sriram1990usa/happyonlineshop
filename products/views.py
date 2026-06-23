@@ -63,15 +63,64 @@ class ProductDetailView(DetailView):
         product = self.get_object()
         ctx['images'] = product.images.all()
         ctx['variants'] = product.variants.all()
-        ctx['reviews'] = product.reviews.filter(is_approved=True).select_related('user')
-        ctx['avg_rating'] = product.reviews.filter(is_approved=True).aggregate(avg=Avg('rating'))['avg'] or 0
+        
+        # Fetch approved reviews and prefetch related user and replies
+        reviews_qs = product.reviews.filter(status='APPROVED').select_related('user', 'admin_reply__admin').prefetch_related('images', 'votes')
+        
+        # Sorting reviews
+        sort = self.request.GET.get('review_sort', 'newest')
+        if sort == 'highest':
+            reviews_qs = reviews_qs.order_by('-rating', '-created_at')
+        elif sort == 'lowest':
+            reviews_qs = reviews_qs.order_by('rating', '-created_at')
+        elif sort == 'helpful':
+            reviews_qs = reviews_qs.annotate(
+                helpful_count=Count('votes', filter=Q(votes__vote_type='HELPFUL'))
+            ).order_by('-helpful_count', '-created_at')
+        else: # default to newest
+            reviews_qs = reviews_qs.order_by('-created_at')
+
+        ctx['reviews'] = reviews_qs
+        ctx['review_sort'] = sort
+        ctx['avg_rating'] = product.average_rating or 0
+        
+        # Calculate rating distribution breakdown
+        total_reviews = reviews_qs.count()
+        distribution = {}
+        for star in range(5, 0, -1):
+            count = reviews_qs.filter(rating=star).count()
+            percentage = int((count / total_reviews) * 100) if total_reviews > 0 else 0
+            distribution[star] = {
+                'count': count,
+                'percentage': percentage
+            }
+        ctx['rating_distribution'] = distribution
+
         ctx['related_products'] = Product.objects.filter(
             category=product.category, is_active=True
         ).exclude(pk=product.pk)[:4]
+        
         ctx['in_wishlist'] = False
+        ctx['has_purchased'] = False
+        ctx['has_reviewed'] = False
+        
         if self.request.user.is_authenticated:
+            # Check wishlist
             from wishlist.models import Wishlist
             wl = Wishlist.objects.filter(user=self.request.user).first()
             if wl:
                 ctx['in_wishlist'] = wl.products.filter(pk=product.pk).exists()
+            
+            # Check if verified purchaser
+            from orders.models import OrderItem
+            ctx['has_purchased'] = OrderItem.objects.filter(
+                order__user=self.request.user,
+                product=product
+            ).filter(
+                Q(order__status='DELIVERED') | Q(order__payment_status='PAID')
+            ).exists()
+            
+            # Check if user has already reviewed this product to prevent duplicates in frontend
+            ctx['has_reviewed'] = product.reviews.filter(user=self.request.user).exists()
+            
         return ctx

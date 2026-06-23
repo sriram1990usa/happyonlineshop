@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}My Reviews — PremiumShop AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  <div class="max-w-4xl mx-auto space-y-8">
+    <div class="flex items-center gap-3">
+      <a href="{% url 'accounts:profile' %}" class="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors text-gray-600">
+        <i class="fa-solid fa-chevron-left text-xs"></i>
+      </a>
+      <h1 class="font-display font-black text-2xl text-gray-900">My Reviews & Ratings</h1>
+    </div>
+
+    <!-- Product Reviews list -->
+    <div class="space-y-4">
+      <h3 class="font-display font-bold text-lg text-gray-800 flex items-center gap-2"><i class="fa-solid fa-box text-brand-600"></i> Product Reviews</h3>
+      {% if product_reviews %}
+        <div class="space-y-4">
+          {% for review in product_reviews %}
+          <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-3 hover:shadow transition-shadow">
+            <div class="flex justify-between items-start">
+              <div>
+                <a href="{% url 'products:detail' review.product.slug %}" class="font-bold text-gray-900 hover:text-brand-600 transition-colors text-sm">{{ review.product.name }}</a>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-[10px] text-gray-400 font-medium">{{ review.created_at|date:"M d, Y" }}</span>
+                  <span class="w-1.5 h-1.5 rounded-full {% if review.status == 'APPROVED' %}bg-green-500{% elif review.status == 'PENDING' %}bg-yellow-500 animate-pulse{% else %}bg-red-500{% endif %}"></span>
+                  <span class="text-[10px] font-bold {% if review.status == 'APPROVED' %}text-green-600{% elif review.status == 'PENDING' %}text-yellow-600{% else %}text-red-600{% endif %} uppercase tracking-wider">{{ review.get_status_display }}</span>
+                </div>
+              </div>
+              <div class="flex gap-0.5 text-yellow-400">
+                {% for i in "12345" %}
+                <i class="fa-star {% if forloop.counter <= review.rating %}fa-solid star-filled{% else %}fa-regular text-gray-200{% endif %} text-xs"></i>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="bg-gray-50/50 rounded-xl p-3 border border-gray-100/50">
+              <h5 class="font-bold text-gray-800 text-xs">{{ review.title }}</h5>
+              <p class="text-xs text-gray-600 leading-relaxed mt-1">"{{ review.body }}"</p>
+            </div>
+            <div class="flex gap-3 justify-end text-[11px] font-bold">
+              <a href="{% url 'reviews:edit_product_review' review.id %}" class="text-brand-600 hover:underline"><i class="fa-regular fa-pen-to-square"></i> Edit Review</a>
+              <a href="{% url 'reviews:delete_product_review' review.id %}" class="text-red-600 hover:underline"><i class="fa-regular fa-trash-can"></i> Delete</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-gray-400">
+          <p class="text-xs font-semibold italic">You haven't reviewed any products yet.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Delivery Reviews list -->
+    <div class="space-y-4 pt-4">
+      <h3 class="font-display font-bold text-lg text-gray-800 flex items-center gap-2"><i class="fa-solid fa-truck text-brand-600"></i> Delivery Reviews</h3>
+      {% if delivery_reviews %}
+        <div class="space-y-4">
+          {% for review in delivery_reviews %}
+          <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-3 hover:shadow transition-shadow">
+            <div class="flex justify-between items-start">
+              <div>
+                <a href="{% url 'orders:detail' review.order.order_number %}" class="font-bold text-gray-900 hover:text-brand-600 transition-colors text-sm">Order #{{ review.order.order_number }}</a>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-[10px] text-gray-400 font-medium">{{ review.created_at|date:"M d, Y" }}</span>
+                  <span class="w-1.5 h-1.5 rounded-full {% if review.status == 'APPROVED' %}bg-green-500{% elif review.status == 'PENDING' %}bg-yellow-500{% else %}bg-red-500{% endif %}"></span>
+                  <span class="text-[10px] font-bold {% if review.status == 'APPROVED' %}text-green-600{% elif review.status == 'PENDING' %}text-yellow-600{% else %}text-red-600{% endif %} uppercase tracking-wider">{{ review.get_status_display }}</span>
+                </div>
+              </div>
+              <div class="flex gap-0.5 text-yellow-400">
+                {% for i in "12345" %}
+                <i class="fa-star {% if forloop.counter <= review.rating %}fa-solid star-filled{% else %}fa-regular text-gray-200{% endif %} text-xs"></i>
+                {% endfor %}
+              </div>
+            </div>
+            <p class="text-xs text-gray-600 leading-relaxed italic bg-gray-50/50 rounded-xl p-3 border border-gray-100/50">"{{ review.body }}"</p>
+            <div class="flex gap-3 justify-end text-[11px] font-bold">
+              <a href="{% url 'reviews:edit_delivery_review' review.id %}" class="text-brand-600 hover:underline"><i class="fa-regular fa-pen-to-square"></i> Edit Review</a>
+              <a href="{% url 'reviews:delete_delivery_review' review.id %}" class="text-red-600 hover:underline"><i class="fa-regular fa-trash-can"></i> Delete</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-gray-400">
+          <p class="text-xs font-semibold italic">You haven't reviewed any deliveries yet.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

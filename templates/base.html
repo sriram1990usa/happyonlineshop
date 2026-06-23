@@ -166,6 +166,12 @@
             <a href="{% url 'orders:list' %}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
               <i class="fa-solid fa-box w-4"></i> My Orders
             </a>
+            <a href="{% url 'reviews:my_reviews' %}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
+              <i class="fa-regular fa-comment w-4"></i> My Reviews
+            </a>
+            <a href="{% url 'reviews:delivery_reviews_list' %}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
+              <i class="fa-solid fa-truck-fast w-4"></i> Delivery Reviews
+            </a>
             <a href="{% url 'accounts:addresses' %}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700">
               <i class="fa-solid fa-location-dot w-4"></i> Addresses
             </a>

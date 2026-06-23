@@ -31,6 +31,12 @@ class DashboardHomeView(View):
         recent_orders = Order.objects.select_related('user').order_by('-created_at')[:10]
         low_stock = Product.objects.filter(is_active=True, stock__lt=10).order_by('stock')[:8]
 
+        # Review stats for dashboard
+        from reviews.models import ProductReview, DeliveryReview, ReviewReport
+        pending_reviews_count = ProductReview.objects.filter(status='PENDING').count() + DeliveryReview.objects.filter(status='PENDING').count()
+        reported_reviews_count = ReviewReport.objects.filter(status='PENDING').count()
+        avg_delivery_rating = DeliveryReview.objects.filter(status='APPROVED').aggregate(avg=Avg('rating'))['avg'] or 0
+
         # Monthly revenue chart data (last 7 days)
         daily_revenue = []
         daily_labels = []
@@ -51,6 +57,10 @@ class DashboardHomeView(View):
             'low_stock': low_stock,
             'daily_revenue': daily_revenue,
             'daily_labels': daily_labels,
+            # reviews stats
+            'pending_reviews_count': pending_reviews_count,
+            'reported_reviews_count': reported_reviews_count,
+            'avg_delivery_rating': avg_delivery_rating,
         }
         return render(request, self.template_name, context)
 

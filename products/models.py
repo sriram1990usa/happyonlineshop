@@ -61,6 +61,8 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     meta_title = models.CharField(max_length=150, blank=True, null=True)
     meta_description = models.TextField(blank=True, null=True)
+    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
+    review_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ['-created_at']
