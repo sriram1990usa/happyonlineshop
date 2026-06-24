@@ -2,16 +2,7 @@ from django import forms
 from .models import ProductReview, DeliveryReview
 from orders.models import OrderItem, Order
 
-class MultipleFileInput(forms.FileInput):
-    allow_multiple_selected = True
-
 class ProductReviewForm(forms.ModelForm):
-    images = forms.FileField(
-        widget=MultipleFileInput(attrs={'class': 'hidden', 'id': 'review-images-input'}),
-        required=False,
-        label="Upload Photos"
-    )
-
     class Meta:
         model = ProductReview
         fields = ['rating', 'title', 'body']
