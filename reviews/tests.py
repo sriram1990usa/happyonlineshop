@@ -203,3 +203,124 @@ class ReviewsTestCase(TestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.average_rating, Decimal('5.00'))
         self.assertEqual(self.product.review_count, 1)
+
+
+class DashboardReviewsTestCase(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name='Snacks', slug='snacks')
+        self.product = Product.objects.create(
+            category=self.category,
+            name='Spicy Podi',
+            price=Decimal('120.00'),
+            stock=10,
+            SKU='PODI-SPI-002'
+        )
+        self.purchaser = User.objects.create_user(
+            email='user@test.com',
+            first_name='Test',
+            last_name='User',
+            password='Password123!'
+        )
+        self.admin = User.objects.create_superuser(
+            email='admin@test.com',
+            first_name='Admin',
+            last_name='Staff',
+            password='Password123!'
+        )
+        self.order = Order.objects.create(
+            user=self.purchaser,
+            status='DELIVERED',
+            payment_status='PAID',
+            subtotal=Decimal('120.00'),
+            total=Decimal('120.00'),
+            shipping_address_snapshot='Bangalore, India'
+        )
+        self.order_item = OrderItem.objects.create(
+            order=self.order,
+            product=self.product,
+            quantity=1,
+            price=Decimal('120.00')
+        )
+        self.review = ProductReview.objects.create(
+            product=self.product,
+            user=self.purchaser,
+            rating=4,
+            title='Good Product',
+            body='It tastes authentic.',
+            status='PENDING'
+        )
+        self.dashboard_reviews_url = reverse('dashboard:reviews')
+        self.dashboard_reviews_action_url = reverse('dashboard:reviews_action')
+
+    def test_unauthorized_user_cannot_access_dashboard_reviews(self):
+        self.client.login(email='user@test.com', password='Password123!')
+        response = self.client.get(self.dashboard_reviews_url)
+        self.assertEqual(response.status_code, 302)  # Should redirect to home or login
+
+    def test_authorized_user_can_access_dashboard_reviews(self):
+        self.client.login(email='admin@test.com', password='Password123!')
+        response = self.client.get(self.dashboard_reviews_url + '?tab=product')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Review Moderation Panel')
+        self.assertContains(response, 'Spicy Podi')
+
+    def test_approve_product_review_via_dashboard(self):
+        self.client.login(email='admin@test.com', password='Password123!')
+        data = {
+            'action': 'approve_product',
+            'id': self.review.id,
+            'tab': 'product'
+        }
+        response = self.client.post(self.dashboard_reviews_action_url, data)
+        self.assertEqual(response.status_code, 302)
+        
+        self.review.refresh_from_db()
+        self.assertEqual(self.review.status, 'APPROVED')
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.average_rating, Decimal('4.00'))
+
+    def test_reject_product_review_via_dashboard(self):
+        self.client.login(email='admin@test.com', password='Password123!')
+        data = {
+            'action': 'reject_product',
+            'id': self.review.id,
+            'tab': 'product'
+        }
+        response = self.client.post(self.dashboard_reviews_action_url, data)
+        self.assertEqual(response.status_code, 302)
+        
+        self.review.refresh_from_db()
+        self.assertEqual(self.review.status, 'REJECTED')
+
+    def test_admin_reply_product_review_via_dashboard(self):
+        self.client.login(email='admin@test.com', password='Password123!')
+        data = {
+            'action': 'reply_product',
+            'id': self.review.id,
+            'body': 'Glad you liked it!',
+            'tab': 'product'
+        }
+        response = self.client.post(self.dashboard_reviews_action_url, data)
+        self.assertEqual(response.status_code, 302)
+        
+        self.review.refresh_from_db()
+        self.assertIsNotNone(self.review.admin_reply)
+        self.assertEqual(self.review.admin_reply.body, 'Glad you liked it!')
+
+    def test_finalized_order_status_cannot_be_reverted(self):
+        # Admin logs in
+        self.client.login(email='admin@test.com', password='Password123!')
+        orders_url = reverse('dashboard:orders')
+        
+        # Order is DELIVERED. Try to change status to PENDING.
+        data = {
+            'order_id': self.order.id,
+            'status': 'PENDING'
+        }
+        response = self.client.post(orders_url, data)
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify status is still DELIVERED
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, 'DELIVERED')
+

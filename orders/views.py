@@ -129,7 +129,10 @@ class OrderConfirmationView(View):
     template_name = 'orders/confirmation.html'
 
     def get(self, request, order_number):
-        order = get_object_or_404(Order, order_number=order_number, user=request.user)
+        if request.user.is_staff or request.user.is_superuser:
+            order = get_object_or_404(Order, order_number=order_number)
+        else:
+            order = get_object_or_404(Order, order_number=order_number, user=request.user)
         return render(request, self.template_name, {'order': order})
 
 
@@ -147,7 +150,10 @@ class OrderDetailView(View):
     template_name = 'orders/detail.html'
 
     def get(self, request, order_number):
-        order = get_object_or_404(Order, order_number=order_number, user=request.user)
+        if request.user.is_staff or request.user.is_superuser:
+            order = get_object_or_404(Order, order_number=order_number)
+        else:
+            order = get_object_or_404(Order, order_number=order_number, user=request.user)
         return render(request, self.template_name, {'order': order})
 
 
@@ -157,7 +163,10 @@ from .invoice_service import generate_invoice_pdf
 @method_decorator(login_required, name='dispatch')
 class OrderInvoiceDownloadView(View):
     def get(self, request, order_number):
-        order = get_object_or_404(Order, order_number=order_number, user=request.user)
+        if request.user.is_staff or request.user.is_superuser:
+            order = get_object_or_404(Order, order_number=order_number)
+        else:
+            order = get_object_or_404(Order, order_number=order_number, user=request.user)
         try:
             pdf_data = generate_invoice_pdf(order)
             response = HttpResponse(pdf_data, content_type='application/pdf')

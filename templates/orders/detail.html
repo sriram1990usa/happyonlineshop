@@ -236,7 +236,7 @@
               {% endif %}
               <p class="text-xs text-gray-400 mt-0.5">Quantity: {{ item.quantity }}</p>
               
-              {% if order.status == 'DELIVERED' or order.payment_status == 'PAID' %}
+              {% if order.status == 'DELIVERED' %}
               <div class="mt-2">
                 <a href="{% url 'products:detail' item.product.slug %}#reviews" class="inline-flex items-center gap-1.5 py-1 px-2.5 bg-brand-50 hover:bg-brand-100 text-brand-600 font-bold text-[11px] rounded-lg border border-brand-100 transition-colors shadow-sm">
                   <i class="fa-regular fa-comment-dots text-[10px]"></i> Write Product Review

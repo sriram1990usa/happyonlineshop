@@ -81,6 +81,11 @@ class DashboardOrdersView(View):
         new_status = request.POST.get('status')
         order = Order.objects.get(pk=order_id)
         
+        if order.status in ['DELIVERED', 'CANCELLED'] and new_status != order.status:
+            from django.contrib import messages
+            messages.error(request, f"Status of a finalized order ({order.get_status_display()}) cannot be modified.")
+            return redirect('dashboard:orders')
+        
         if new_status == 'SHIPPED':
             order.courier_name = request.POST.get('courier_name', '').strip() or None
             order.tracking_number = request.POST.get('tracking_number', '').strip() or None
@@ -106,3 +111,134 @@ class DashboardProductsView(View):
     def get(self, request):
         products = Product.objects.all().select_related('category', 'brand')
         return render(request, self.template_name, {'products': products})
+
+
+@method_decorator([login_required, user_passes_test(is_staff)], name='dispatch')
+class DashboardReviewsView(View):
+    template_name = 'dashboard/reviews.html'
+
+    def get(self, request):
+        tab = request.GET.get('tab', 'reports')
+        from reviews.models import ProductReview, DeliveryReview, ReviewReport
+
+        # Get reports
+        reports = ReviewReport.objects.select_related(
+            'user', 'product_review__product', 'product_review__user',
+            'delivery_review__order', 'delivery_review__user'
+        ).order_by('-created_at')
+
+        # Get product reviews
+        product_reviews = ProductReview.objects.select_related(
+            'product', 'user', 'admin_reply__admin'
+        ).order_by('-created_at')
+
+        # Get delivery reviews
+        delivery_reviews = DeliveryReview.objects.select_related(
+            'order', 'user', 'admin_reply__admin'
+        ).order_by('-created_at')
+
+        # Filter by status if specified
+        status_filter = request.GET.get('status', '')
+        if status_filter:
+            if tab == 'product':
+                product_reviews = product_reviews.filter(status=status_filter)
+            elif tab == 'delivery':
+                delivery_reviews = delivery_reviews.filter(status=status_filter)
+            elif tab == 'reports':
+                reports = reports.filter(status=status_filter)
+
+        context = {
+            'tab': tab,
+            'reports': reports,
+            'product_reviews': product_reviews,
+            'delivery_reviews': delivery_reviews,
+            'status_filter': status_filter,
+            'pending_reports_count': ReviewReport.objects.filter(status='PENDING').count(),
+            'pending_product_count': ProductReview.objects.filter(status='PENDING').count(),
+            'pending_delivery_count': DeliveryReview.objects.filter(status='PENDING').count(),
+        }
+        return render(request, self.template_name, context)
+
+
+@method_decorator([login_required, user_passes_test(is_staff)], name='dispatch')
+class DashboardReviewsActionView(View):
+    def post(self, request):
+        from django.shortcuts import get_object_or_404
+        from django.urls import reverse
+        from django.contrib import messages
+        from reviews.models import ProductReview, DeliveryReview, ReviewReport, AdminReply
+
+        action = request.POST.get('action')
+        pk = request.POST.get('id')
+
+        if action == 'approve_product':
+            review = get_object_or_404(ProductReview, pk=pk)
+            review.status = 'APPROVED'
+            review.save()
+            messages.success(request, "Product review approved successfully.")
+        elif action == 'reject_product':
+            review = get_object_or_404(ProductReview, pk=pk)
+            review.status = 'REJECTED'
+            review.save()
+            messages.success(request, "Product review rejected.")
+        elif action == 'delete_product':
+            review = get_object_or_404(ProductReview, pk=pk)
+            review.delete()
+            messages.success(request, "Product review deleted successfully.")
+        elif action == 'approve_delivery':
+            review = get_object_or_404(DeliveryReview, pk=pk)
+            review.status = 'APPROVED'
+            review.save()
+            messages.success(request, "Delivery review approved successfully.")
+        elif action == 'reject_delivery':
+            review = get_object_or_404(DeliveryReview, pk=pk)
+            review.status = 'REJECTED'
+            review.save()
+            messages.success(request, "Delivery review rejected.")
+        elif action == 'delete_delivery':
+            review = get_object_or_404(DeliveryReview, pk=pk)
+            review.delete()
+            messages.success(request, "Delivery review deleted successfully.")
+        elif action == 'resolve_report':
+            report = get_object_or_404(ReviewReport, pk=pk)
+            report.status = 'ACTIONED'
+            report.save()
+            messages.success(request, "Review report marked as Actioned.")
+        elif action == 'dismiss_report':
+            report = get_object_or_404(ReviewReport, pk=pk)
+            report.status = 'DISMISSED'
+            report.save()
+            messages.success(request, "Review report dismissed.")
+        elif action == 'reply_product':
+            review = get_object_or_404(ProductReview, pk=pk)
+            body = request.POST.get('body', '').strip()
+            if body:
+                reply, created = AdminReply.objects.get_or_create(
+                    product_review=review,
+                    defaults={'admin': request.user, 'body': body}
+                )
+                if not created:
+                    reply.body = body
+                    reply.admin = request.user
+                    reply.save()
+                messages.success(request, "Admin reply added to product review.")
+            else:
+                messages.error(request, "Reply body cannot be empty.")
+        elif action == 'reply_delivery':
+            review = get_object_or_404(DeliveryReview, pk=pk)
+            body = request.POST.get('body', '').strip()
+            if body:
+                reply, created = AdminReply.objects.get_or_create(
+                    delivery_review=review,
+                    defaults={'admin': request.user, 'body': body}
+                )
+                if not created:
+                    reply.body = body
+                    reply.admin = request.user
+                    reply.save()
+                messages.success(request, "Admin reply added to delivery review.")
+            else:
+                messages.error(request, "Reply body cannot be empty.")
+
+        tab = request.POST.get('tab', 'reports')
+        return redirect(f"{reverse('dashboard:reviews')}?tab={tab}")

@@ -82,7 +82,7 @@
           <span class="text-xs text-gray-400 font-semibold block">Pending Moderation</span>
           <div class="flex items-baseline gap-2">
             <span class="text-xl font-bold text-gray-800">{{ pending_reviews_count }}</span>
-            <a href="/admin/reviews/productreview/" target="_blank" class="text-[10px] text-brand-600 font-bold hover:underline">Moderate in Admin</a>
+            <a href="{% url 'dashboard:reviews' %}?tab=product&status=PENDING" class="text-[10px] text-brand-600 font-bold hover:underline">Moderate in Dashboard</a>
           </div>
         </div>
       </div>
@@ -95,7 +95,7 @@
           <span class="text-xs text-gray-400 font-semibold block">Flagged Review Reports</span>
           <div class="flex items-baseline gap-2">
             <span class="text-xl font-bold text-gray-800">{{ reported_reviews_count }}</span>
-            <a href="/admin/reviews/reviewreport/" target="_blank" class="text-[10px] text-brand-600 font-bold hover:underline">View Reports</a>
+            <a href="{% url 'dashboard:reviews' %}?tab=reports&status=PENDING" class="text-[10px] text-brand-600 font-bold hover:underline">View in Dashboard</a>
           </div>
         </div>
       </div>

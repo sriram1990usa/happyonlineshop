@@ -47,9 +47,8 @@ class ProductReview(models.Model):
             from orders.models import OrderItem
             has_order = OrderItem.objects.filter(
                 order__user=self.user,
-                product=self.product
-            ).filter(
-                models.Q(order__status='DELIVERED') | models.Q(order__payment_status='PAID')
+                product=self.product,
+                order__status='DELIVERED'
             ).exists()
             self.is_verified_purchase = has_order
 

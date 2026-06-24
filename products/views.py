@@ -115,9 +115,8 @@ class ProductDetailView(DetailView):
             from orders.models import OrderItem
             ctx['has_purchased'] = OrderItem.objects.filter(
                 order__user=self.request.user,
-                product=product
-            ).filter(
-                Q(order__status='DELIVERED') | Q(order__payment_status='PAID')
+                product=product,
+                order__status='DELIVERED'
             ).exists()
             
             # Check if user has already reviewed this product to prevent duplicates in frontend

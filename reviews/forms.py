@@ -29,25 +29,15 @@ class ProductReviewForm(forms.ModelForm):
                 raise forms.ValidationError("You have already reviewed this product.")
 
         # Check if the user is a verified purchaser
-        # The user has successfully purchased if there is a completed/paid OrderItem
+        # The user has successfully purchased if there is a delivered OrderItem
         has_purchased = OrderItem.objects.filter(
             order__user=self.user,
-            product=self.product
-        ).filter(
-            models.Q(order__status='DELIVERED') | models.Q(order__payment_status='PAID')
-        ).exists() if hasattr(self, 'models') else True # we import models inside clean just in case or use standard django Q
-        
-        # Standard Q check
-        from django.db.models import Q
-        has_purchased = OrderItem.objects.filter(
-            order__user=self.user,
-            product=self.product
-        ).filter(
-            Q(order__status='DELIVERED') | Q(order__payment_status='PAID')
+            product=self.product,
+            order__status='DELIVERED'
         ).exists()
 
         if not has_purchased:
-            raise forms.ValidationError("Only verified purchasers of this product can submit a review.")
+            raise forms.ValidationError("Only verified purchasers of this product with delivered orders can submit a review.")
 
         return cleaned_data
 

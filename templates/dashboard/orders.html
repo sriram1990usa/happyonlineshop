@@ -82,6 +82,11 @@
                 {% endif %}
               </td>
               <td class="px-6 py-4">
+                {% if order.status == 'DELIVERED' or order.status == 'CANCELLED' %}
+                <span class="text-xs font-bold text-gray-400 inline-flex items-center gap-1 bg-gray-50 border border-gray-200/60 rounded-lg px-2.5 py-1 select-none">
+                  <i class="fa-solid fa-lock text-[10px]"></i> Finalized
+                </span>
+                {% else %}
                 <form method="POST" enctype="multipart/form-data" class="flex flex-col gap-2 min-w-[200px]">
                   {% csrf_token %}
                   <input type="hidden" name="order_id" value="{{ order.id }}"/>
@@ -124,6 +129,7 @@
                     </div>
                   </div>
                 </form>
+                {% endif %}
               </td>
             </tr>
             {% empty %}
